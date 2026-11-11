@@ -275,16 +275,14 @@ def test_nan_predictions_do_not_pass_silently(synth):
     assert np.isnan(res.mean)  # acceptable: NaN is visible
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT F2: runner returns NaN instead of raising; a NaN "
-                   "cv_mean can be written to the registry and sort silently (na_position='last')")
+# AUDIT F2 (fixed 2026-11-11 by the director): the runner now raises on non-finite predictions.
 def test_nan_predictions_should_raise(synth):
     X, y = synth
     with pytest.raises(ValueError):
         v.cross_validate(NaNPredictor(), X, y)
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT F3: no guard for an empty training set after the "
-                   "filter; a tolerant estimator (mean of nothing) yields NaN instead of an error")
+# AUDIT F3 (fixed 2026-11-11 by the director): an empty training set after the filter raises.
 def test_empty_training_after_filter_fails_loudly(synth):
     X, y = synth
     with pytest.raises(ValueError):
@@ -302,9 +300,7 @@ def test_repeated_cv_scores_count(synth):
     assert len(res.fold_scores) == 15
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT F1: is_single_pass is always True because "
-                   "RepeatedKFold has no n_splits attribute; OOF is silently overwritten by the "
-                   "last repeat although CVResult documents NaN for repeated CV")
+# AUDIT F1 (fixed 2026-11-11 by the director): single-pass detection now uses cv.n_repeats.
 def test_repeated_cv_oof_is_nan_as_documented(synth):
     X, y = synth
     res = v.cross_validate(RecordingMean(), X, y, v.make_cv(n_repeats=3))

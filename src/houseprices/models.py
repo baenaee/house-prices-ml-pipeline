@@ -141,14 +141,21 @@ class CatBoostNative(RegressorMixin, BaseEstimator):
         defaults = dict(random_seed=SEED, thread_count=N_THREADS, verbose=0, allow_writing_files=False)
         return CatBoostRegressor(**{**defaults, **(self.params or {})})
 
+    def _fill_text(self, X: pd.DataFrame) -> pd.DataFrame:
+        """CatBoost rejects None/NaN in categorical columns; turn any leftover gap into 'Unknown'."""
+        X = X.copy()
+        for c in self.cat_cols_:
+            X[c] = X[c].astype(object).where(X[c].notna(), config.UNKNOWN_LABEL)
+        return X
+
     def fit(self, X: pd.DataFrame, y) -> CatBoostNative:
-        cat_cols = [c for c in X.columns if X[c].dtype == object or str(X[c].dtype) in ("category", "string")]
-        self.cat_cols_ = cat_cols
-        self.model_ = self._make().fit(X, np.asarray(y), cat_features=cat_cols)
+        self.cat_cols_ = [c for c in X.columns
+                          if X[c].dtype == object or str(X[c].dtype) in ("category", "string")]
+        self.model_ = self._make().fit(self._fill_text(X), np.asarray(y), cat_features=self.cat_cols_)
         return self
 
     def predict(self, X: pd.DataFrame) -> np.ndarray:
-        return np.asarray(self.model_.predict(X), dtype=float)
+        return np.asarray(self.model_.predict(self._fill_text(X)), dtype=float)
 
 
 # ---------------------------------------------------------------------------

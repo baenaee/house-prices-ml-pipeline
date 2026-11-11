@@ -176,17 +176,24 @@ def cross_validate(
     """
     cv = cv if cv is not None else make_cv()
     fit_params = fit_params or {}
-    n_splits_total = cv.get_n_splits(X)
-    is_single_pass = n_splits_total == getattr(cv, "n_splits", n_splits_total)
+    # OOF predictions are only well defined when every row is validated exactly once.
+    # RepeatedKFold exposes `n_repeats`; plain KFold does not (treated as 1 repeat).
+    is_single_pass = getattr(cv, "n_repeats", 1) == 1
 
     oof = np.full(len(X), np.nan)
     scores: list[float] = []
     n_rows: list[int] = []
     t0 = time.perf_counter()
-    for _, tr, va in iter_folds(X, y_log, cv, train_row_filter):
+    for fold, tr, va in iter_folds(X, y_log, cv, train_row_filter):
+        if len(tr) == 0:
+            raise ValueError(f"fold {fold}: the train_row_filter removed every training row")
         model = clone(estimator)
         model.fit(X.iloc[tr], y_log.iloc[tr], **fit_params)
         pred = np.asarray(model.predict(X.iloc[va]), dtype=float)
+        if not np.all(np.isfinite(pred)):
+            raise ValueError(
+                f"fold {fold}: estimator produced {int((~np.isfinite(pred)).sum())} non-finite predictions"
+            )
         scores.append(rmse_log(y_log.iloc[va], pred))
         n_rows.append(len(tr))
         if is_single_pass:
