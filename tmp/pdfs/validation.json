@@ -1,0 +1,19 @@
+{
+  "pages": 16,
+  "features": 79,
+  "category_definitions": 320,
+  "group_pages": [
+    3,
+    5,
+    7,
+    8,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "output": "C:\\Users\\Enrique Baena\\Desktop\\HousePricingKaglle\\output\\pdf\\house_prices_feature_guide.pdf",
+  "all_source_definitions_verified": true
+}

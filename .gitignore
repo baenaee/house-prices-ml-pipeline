@@ -1,0 +1,28 @@
+# Large regenerable report (49 MB). Preserved in the dated ZIP backup; SHA-256 recorded in docs/AUDIT_2026-11-11.md
+house_prices_training_profile.html
+
+# Rendered page images of the feature guide (regenerable from tmp/pdfs/build_guide.py)
+tmp/pdfs/*.png
+
+# Claude Code session settings
+.claude/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Regenerable experiment artefacts
+outputs/models/
+*.joblib
+*.pkl
+*.db
+*.sqlite3
+optuna_*.log
