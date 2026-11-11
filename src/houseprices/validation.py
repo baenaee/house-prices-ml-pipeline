@@ -88,7 +88,14 @@ def load_or_create_holdout_ids(train: pd.DataFrame) -> list[int]:
     """Read experiments/holdout_ids.json, creating it on first use so it is fixed forever."""
     path = config.HOLDOUT_IDS_PATH
     if path.exists():
-        return json.loads(path.read_text(encoding="utf-8"))["holdout_ids"]
+        ids = json.loads(path.read_text(encoding="utf-8"))["holdout_ids"]
+        known = set(train[config.ID_COL].tolist())
+        missing = [i for i in ids if i not in known]
+        if missing or len(ids) != len(set(ids)):
+            raise ValueError(
+                f"{path} is inconsistent with the training data (unknown or duplicate ids: {missing[:5]})"
+            )
+        return ids
     ids = make_holdout_ids(train)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

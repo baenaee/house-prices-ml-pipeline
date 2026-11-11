@@ -48,6 +48,32 @@ Phase 0 complete. Phase A code complete and green, pending Agent D's audit sign-
 
 No Kaggle submissions; no TabPFN; no destructive change to original files; no paid services; tuning cap 3 h CPU; approval needed before anything outside the approved plan.
 
-## Agent wrap-up reports
+## Agent wrap-up reports (received 2026-11-11, all work saved and committed)
 
-(filled in below as they arrive)
+**Agent A, feature-researcher — complete, nothing in progress.**
+- `cleaning.py`: 17 rules, `clean`, `clean_train_test`, `load_raw`, `basement_fully_unrecorded`, `add_anomaly_flags`. `features.py`: `FEATURE_SETS` with six groups (base, areas, baths, ages, quality_interactions, ordinal_quality) and `build_features`. `preprocess.py`: `GroupMedianImputer`, `split_columns` (any non-numeric column is categorical, pandas 2/3 safe), `make_preprocessor(X_sample, ...)`.
+- Tests: 30 cleaning + 13 features = 43 passed. All 17 counts match; deferred NaN match; B04 selects only Id 2121; cleaning idempotent. Repaired notebook executed: 80 cells, 0 errors.
+- Deviations from spec (accepted by the director): `make_preprocessor` takes `X_sample` (a DataFrame) rather than a column list; `ordinal_quality` adds `<col>_ord` columns and keeps the text columns; anomaly flags are excluded from "base".
+- Director decisions on A's questions: anomaly flags MAY be tested as an extra feature group ("anomaly_flags") in the ablation, never in "base"; an ablation runner IS wanted at `experiments/feature_ablation/run_ablation.py` (Agent A writes it against `validation.cross_validate`, using Agent B's `build_ridge`, `build_elasticnet`, `build_xgboost` builders).
+
+**Agent B, model-researcher — code complete, NOTHING RUN.**
+- `models.py`: builders mean, OLS numeric, ridge, lasso, elasticnet, xgboost, lightgbm, catboost (`native_categoricals` kwarg); `OPTUNA_SPACES`; `BUILDERS`; helpers `LazyPreprocessor` (builds the preprocessor from the training fold's columns inside fit; reads no values), `NumericMedianImputer`, `CatBoostNative`. Linear builders accept `scaler="robust"|"standard"`. Tree builders default to `scale=False`. No early stopping; `n_estimators` is tuned.
+- `experiments/models/_common.py` (`run_and_register`) and `run_baselines.py` (E001–E004; refuses to run if ids exist). Smoke-tested on synthetic data only.
+- Tuner note: call `OPTUNA_SPACES[name](trial)` to get params; do not rebuild from `trial.params` (LightGBM space fixes `subsample_freq=1` outside the trial).
+- Resume: after D's round-2 sign-off, `& "<env python>" experiments\models\run_baselines.py`, then `python -m houseprices.evaluate --experiment E003`.
+
+**Agent C, ensemble-researcher — C0/C1 complete, C2 not started.**
+- `ensemble.py`: `NestedStackingRegressor`, `BlendingRegressor` (weights learned inside fit when `weights=None`), `fit_blend_weights` (NNLS / SLSQP), `inner_oof_matrix`, `prediction_correlation`, `residual_correlation`, `diversity_report`, `build_blend`, `build_stack`, plus labelled optimistic diagnostics `optimistic_oof_stack_score`, `in_sample_stack_score`. Nesting is inside `fit()`, so `validation.cross_validate` remains the single outer protocol. 12 tests passed, including the memoriser leak test.
+- Director decisions on C's questions: Stage 1 uses `passthrough=False` only (no numeric-matrix plumbing); Ridge meta-learner only; nested cost accepted (minutes per stack).
+- Resume: needs the registry ids of the best Ridge/Lasso/ElasticNet/XGBoost/LightGBM/CatBoost from Agent B before writing `experiments/ensemble/run_ensembles.py`.
+
+**Agent D, validation-auditor — round 1 complete.**
+- F1–F3 (medium/low) in `validation.py`: FIXED by the director; tests converted from strict xfail to ordinary tests (77 passed).
+- F4 (low): holdout file trusted without validation → FIXED (ids checked against the data, duplicates rejected).
+- F5 (low): `config.DICTIONARY_TO_DATA_VALUES["Exterior2nd"]` key misspelled `CmentBd` → FIXED to `CemntBd` (dictionary) → `CmentBd` (data).
+- Q4 (noted): `drop_large_living_area(4000)` also removes Ids 692 and 1183 (legitimate expensive houses); it is a deliberately different policy from `drop_candidate_outliers`, both are evaluated under CV.
+- Round 2 (cleaning/features/preprocess audit) NOT yet requested; must precede the baseline runs.
+
+## Decisions pending the user (none blocking)
+
+None. All approvals needed for the next steps were granted in the plan. The next session should begin with Agent D's round 2, then E001–E004.

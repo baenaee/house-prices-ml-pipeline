@@ -113,7 +113,7 @@ UNKNOWN_LABEL = "Unknown"
 DICTIONARY_TO_DATA_COLUMNS = {"Bedroom": "BedroomAbvGr", "Kitchen": "KitchenAbvGr"}
 DICTIONARY_TO_DATA_VALUES = {
     "MSZoning": {"C": "C (all)"},
-    "Exterior2nd": {"BrkComm": "Brk Cmn", "WdShing": "Wd Shng", "CmentBd": "CmentBd"},
+    "Exterior2nd": {"BrkComm": "Brk Cmn", "WdShing": "Wd Shng", "CemntBd": "CmentBd"},
     "Neighborhood": {"Names": "NAmes"},
 }
 
