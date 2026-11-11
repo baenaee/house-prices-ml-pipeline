@@ -6,7 +6,7 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 |---|---|---|---|---|---|
 | P0.1 | Dated ZIP of originals, hash-verified | director | – | done | `HousePricingKaglle_original_2026-11-11.zip`, 29 entries, 0 mismatches |
 | P0.2 | Git repo + checkpoint commit (HTML excluded) | director | P0.1 | done | commit `fedba71`, `git status` clean |
-| P0.3 | conda env `houseprices` (py3.12) + core packages, kernel registered | director | – | in-progress | background build |
+| P0.3 | conda env `houseprices` (py3.12) + core packages, kernel registered | director | – | done | pandas pinned 2.3.3 (matches original notebook); sklearn 1.9.1, xgb 3.4.1, lgbm 4.7.0, catboost 1.2.10, optuna 5.0.0, shap 0.54.1 |
 | P0.4 | `environment.yml` / `requirements.txt` with resolved versions | director | P0.3 | todo | |
 | P0.5 | `docs/AUDIT_2026-11-11.md` (audit record + hash manifest) | director | P0.1 | done | |
 | P0.6 | Package skeleton: config, validation, registry, pyproject | director | – | done | |

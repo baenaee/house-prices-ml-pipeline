@@ -1,0 +1,14 @@
+# Reproduce the research environment:
+#   conda env create -f environment.yml
+#   conda activate houseprices
+#   pip install -e .
+#   python -m ipykernel install --user --name houseprices --display-name "Python (houseprices)"
+# Exact versions used in the experiments are pinned in requirements.txt (pip freeze, 2026-11-11).
+name: houseprices
+channels:
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -r requirements.txt
