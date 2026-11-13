@@ -1,3 +1,5 @@
+<!-- STATUS: real-diversity update COMPLETE (2026-11-13). Section 1 uses diversity_20261113_121446.csv; section 8b added with E061-E064. Complete as of this save; nothing pending. -->
+
 # Study guide, part 3: ensembles, blending and nested stacking
 
 Code: `src/houseprices/ensemble.py`, `experiments/ensemble/run_ensembles.py`, `tests/test_ensemble.py`.
@@ -18,7 +20,39 @@ Our models differ in kind. Ridge, Lasso and ElasticNet are penalised linear mode
 | Prediction correlation | OOF predictions of two models | Almost always above 0.9 here, because every model predicts the same price scale. Nearly useless for judging diversity. |
 | Residual correlation | prediction minus truth | The informative one. Near 1 means the models make the same mistakes. Lower values mean blending can cancel errors. |
 
-In the dry-run on 150 rows, Lasso and ElasticNet had residual correlation about 0.97, and linear versus tree pairs were around 0.5 to 0.7. Those dry-run numbers are plumbing checks only. The real values come from the full run. The expected pattern is the point: pairing across families beats pairing within a family.
+Real values, from `experiments/ensemble/diversity_20261113_121446.csv`: single-pass OOF predictions of the six tuned Stage 1 bases (E055 to E060) on the working feature set, seed-42 folds. Each base's recomputed cv_mean matches its registered value to six decimals.
+
+Residual correlation (3 decimals):
+
+| | ridge | lasso | enet | xgb | lgbm | cat |
+|---|---|---|---|---|---|---|
+| ridge | 1.000 | 0.970 | 0.975 | 0.825 | 0.823 | 0.852 |
+| lasso | 0.970 | 1.000 | 0.997 | 0.831 | 0.829 | 0.860 |
+| elasticnet | 0.975 | 0.997 | 1.000 | 0.833 | 0.834 | 0.862 |
+| xgboost | 0.825 | 0.831 | 0.833 | 1.000 | 0.962 | 0.946 |
+| lightgbm | 0.823 | 0.829 | 0.834 | 0.962 | 1.000 | 0.946 |
+| catboost | 0.852 | 0.860 | 0.862 | 0.946 | 0.946 | 1.000 |
+
+Prediction correlation (3 decimals):
+
+| | ridge | lasso | enet | xgb | lgbm | cat |
+|---|---|---|---|---|---|---|
+| ridge | 1.000 | 0.996 | 0.997 | 0.980 | 0.980 | 0.983 |
+| lasso | 0.996 | 1.000 | 1.000 | 0.982 | 0.981 | 0.985 |
+| elasticnet | 0.997 | 1.000 | 1.000 | 0.982 | 0.982 | 0.985 |
+| xgboost | 0.980 | 0.982 | 0.982 | 1.000 | 0.996 | 0.994 |
+| lightgbm | 0.980 | 0.981 | 0.982 | 0.996 | 1.000 | 0.994 |
+| catboost | 0.983 | 0.985 | 0.985 | 0.994 | 0.994 | 1.000 |
+
+Per-base RMSE: ridge 0.1319, lasso 0.1272, elasticnet 0.1272, xgboost 0.1242, lightgbm 0.1256, catboost 0.1204.
+
+Reading:
+
+- Prediction correlation is between 0.980 and 1.000 for every pair, so it says nothing about diversity, as predicted above.
+- Within a family the models are near duplicates: Lasso and ElasticNet at 0.997, XGBoost and LightGBM at 0.962, CatBoost with either at 0.946.
+- Cross-family pairs are the most complementary, with residual correlation 0.82 to 0.86. The lowest are Ridge with LightGBM (0.823) and Ridge with XGBoost (0.825).
+- CatBoost is the most accurate base. Its best partners by diversity are the linear models (0.852 to 0.862), which is why Lasso plus CatBoost is the natural pair.
+- Residual correlation is high everywhere, so expect modest ensemble gains.
 
 The diversity report uses single-pass OOF predictions, one per row, from the same folds as the registry. It is a diagnostic. Nothing is fitted on it and then scored on the same rows.
 
@@ -124,6 +158,28 @@ For each ensemble the runner takes the best single member among its own bases (l
 Why paired: fold difficulty varies a lot (fold scores differ by a few hundredths) and mostly cancels in the differences. Comparing the two cv_means with their unpaired standard deviations would hide real gains. Why only one SE and five folds: the SE from five differences is itself noisy, so a retain means "worth confirming" and not "proven". The director re-tests finalists with RepeatedKFold 5x3.
 
 Decisions are also made against the best member, not against the average of members. An ensemble that beats the average member but not the best one is not worth its extra fitting time.
+
+## 8b. Worked example: average versus learned weights versus six-base blend (E061 to E064)
+
+These four records were registered ahead of the planned full ensemble run, so they are labelled premature in the experiment history. They are valid CV runs. Caveat: they use the Stage 1 tuned bases (E055 to E060), the seed-42 five-fold split and a single repeat. With five folds, a paired SE is noisy. Treat the pattern as a hypothesis for the RepeatedKFold 5x3 test, not as a conclusion.
+
+Reference: best single base is CatBoost E060 at 0.11946. Differences are ensemble minus CatBoost, averaged over the five folds, with the paired standard error.
+
+| Id | Ensemble | cv_mean | Difference vs CatBoost | Paired SE | Runner decision |
+|---|---|---|---|---|---|
+| E061 | Equal-weight average, Lasso + CatBoost | 0.11807 | -0.0014 | 0.0019 | investigate |
+| E062 | Learned blend, Lasso + CatBoost | 0.11902 | -0.0004 | 0.0016 | investigate |
+| E063 | Learned blend, all six bases | 0.11943 | -0.00003 | 0.0019 | investigate |
+| E064 | Learned blend, Ridge + Lasso + ElasticNet | 0.12585 | n/a | n/a | reject |
+
+E064 is compared with its own best member, Lasso (0.12545), not with CatBoost, and is worse by more than one SE.
+
+What to take from it:
+
+- **Average versus learned weights.** The naive average scored slightly better than the learned blend of the same two models (0.11807 against 0.11902). Their difference is 0.0009 with an SE of 0.0007, so it is within noise. With two highly accurate partners, estimating weights from about 1,000 inner OOF rows adds a little variance that equal weights avoid. This is the usual reason to keep the naive reference.
+- **Six bases did not beat two.** Adding Ridge, ElasticNet, XGBoost and LightGBM brought nothing over CatBoost alone. This agrees with the diversity tables: the extra models are near duplicates of Lasso or of the boosted trees.
+- **Same-family blends do not help.** The linear-only blend is worse than its own best member, since the three linear models share almost all their errors (0.970 to 0.997).
+- **One-SE rule in action.** No ensemble beats CatBoost by more than one SE, so none is "retain". All are "investigate" except the rejected one.
 
 ## 9. Self-check questions
 
