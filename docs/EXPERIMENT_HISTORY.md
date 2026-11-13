@@ -191,3 +191,28 @@ Agent D verified the director's fixes: `score_holdout_once` refuses any frame wh
 | # | Decision | Alternatives considered | Ruling and evidence |
 |---|---|---|---|
 | D20 | The opt-in `YearRangeClipper` (preprocess `clip_years=True`) clips the UPPER bound only, learned from the training fold | clip to [min, max] | Agent A found that two-sided clipping would also move test Ids 1603/2218 (garages built 1896/1895) to the 1900 training minimum; those are real values. Only years beyond the training maximum are impossible (Id 2593, 2207 → 2010). Provably a no-op on development rows, so CV scores are unaffected. |
+
+### 2026-11-13 — Base-model diversity (diagnostic) and premature ensembles E061–E064
+
+Agent C ran `experiments/ensemble/run_ensembles.py --select-best` on the Stage 1 bases (E055 Ridge, E056 Lasso, E057 ElasticNet, E058 XGBoost, E059 LightGBM, E060 CatBoost; feature set "all", keep_all). The director had asked for the diagnostic only, because Agent B held the registry lock for Stage 2; the runner registered anyway (protocol breach by the ensemble-researcher, process terminated by the director once detected). The registered records follow the full nested protocol and reproduce through `evaluate`, so they are kept and labelled "Stage 1 bases"; the ensemble block is re-run after Stage 2 with the final bases (different config hashes).
+
+Diversity diagnostic (`experiments/ensemble/diversity_20261113_120415.csv`, single-pass OOF predictions of each base, used for nothing but this table):
+
+| pair type | residual correlation | prediction correlation |
+|---|---|---|
+| linear vs linear (Ridge, Lasso, ElasticNet) | 0.970–0.997 | 0.996–1.000 |
+| tree vs tree (XGBoost, LightGBM, CatBoost) | 0.946–0.962 | 0.994–0.996 |
+| linear vs tree | 0.823–0.862 | 0.980–0.985 |
+
+Reading: the three linear models are near-duplicates of each other (Lasso/ElasticNet residuals correlate 0.997) and so are the three boosters; the only genuine diversity is between the two families. XGBoost and LightGBM residuals are slightly less correlated with the linear models (0.82–0.83) than CatBoost's (0.85–0.86), but CatBoost is the strongest base (OOF RMSE 0.1204 vs 0.1242 XGBoost). Expectation: a linear+tree pair captures most of the ensemble gain; adding a third model of the same family adds little.
+
+Premature ensembles (Stage 1 bases, KFold 5 seed 42, nested where applicable):
+
+| id | ensemble | CV RMSE | vs best base (CatBoost 0.11946) |
+|---|---|---|---|
+| E061 | equal-weight average Lasso + CatBoost | 0.11807 | −0.0014 |
+| E062 | NNLS blend Lasso + CatBoost (weights learned in-fold) | 0.11902 | −0.0004 |
+| E063 | NNLS blend of all six bases | 0.11943 | −0.0000 |
+| E064 | NNLS blend of the three linear models | 0.12585 | +0.0064 (worse than CatBoost; better than Lasso 0.12545 by nothing) |
+
+Reading: the naive 50/50 average of the best linear and the best tree model is the best result so far; learned blend weights do not beat it (the weights are fit on inner OOF predictions of about 800 rows and add variance), and blending six near-duplicate bases is no better than CatBoost alone. All differences are within the 0.003 noise band and must be confirmed on the seed-7 finalist folds.
