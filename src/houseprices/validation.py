@@ -230,3 +230,61 @@ def drop_large_living_area(threshold: float = 4000.0) -> TrainRowFilter:
 
     _filter.__name__ = f"drop_GrLivArea_gt_{int(threshold)}"
     return _filter
+
+
+# ---------------------------------------------------------------------------
+# Single-use holdout evaluation (binding correction 3)
+# ---------------------------------------------------------------------------
+
+HOLDOUT_USAGE_LOG = config.EXPERIMENTS_DIR / "holdout_usage.log"
+
+
+class HoldoutAlreadyUsedError(RuntimeError):
+    """Raised when the holdout has already been scored once."""
+
+
+def holdout_usage() -> list[dict]:
+    """Every recorded holdout evaluation (normally zero or one entries)."""
+    if not HOLDOUT_USAGE_LOG.exists():
+        return []
+    return [json.loads(line) for line in HOLDOUT_USAGE_LOG.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def score_holdout_once(
+    fitted_estimator: BaseEstimator,
+    X_holdout: pd.DataFrame,
+    y_holdout_log: pd.Series,
+    frozen_experiment_id: str,
+    note: str = "",
+    force: bool = False,
+) -> dict:
+    """Score the single-use holdout and append the event to ``experiments/holdout_usage.log``.
+
+    The estimator must already be fitted on the development rows (post training-row policy).
+    A second call raises :class:`HoldoutAlreadyUsedError` unless ``force=True``; a forced call
+    is logged with ``"forced": true`` so the report must declare that the holdout is no longer
+    an unbiased estimate (binding correction 3).
+    """
+    used = holdout_usage()
+    if used and not force:
+        raise HoldoutAlreadyUsedError(
+            f"holdout already scored on {used[0]['timestamp']} for {used[0]['frozen_experiment_id']}; "
+            "a second evaluation would bias the estimate (pass force=True only with a documented reason)"
+        )
+    pred = np.asarray(fitted_estimator.predict(X_holdout), dtype=float)
+    if not np.all(np.isfinite(pred)):
+        raise ValueError("holdout predictions are not all finite")
+    score = rmse_log(y_holdout_log, pred)
+    event = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "frozen_experiment_id": frozen_experiment_id,
+        "n_holdout": int(len(X_holdout)),
+        "rmse_log": round(score, 6),
+        "forced": bool(force),
+        "n_previous_uses": len(used),
+        "note": note,
+    }
+    HOLDOUT_USAGE_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with HOLDOUT_USAGE_LOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(event) + "\n")
+    return event
