@@ -1,0 +1,76 @@
+{
+  "xgboost": {
+    "best_value": 0.12307068947716078,
+    "gap_to_best_model": 0.0036136746614723325,
+    "within_gap": false,
+    "improving_last_10": false,
+    "stage2_recommended": false,
+    "n_trials": 25,
+    "elapsed_minutes": 2.18,
+    "stopped_by_time_cap": false,
+    "best_params": {
+      "learning_rate": 0.03920673972242137,
+      "n_estimators": 1600,
+      "max_depth": 3,
+      "subsample": 0.7571172192068059,
+      "colsample_bytree": 0.7962072844310213,
+      "reg_alpha": 0.0015339162591163618,
+      "reg_lambda": 0.26926469100861794,
+      "min_child_weight": 4
+    },
+    "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
+    "train_row_filter": "keep_all"
+  },
+  "lightgbm": {
+    "best_value": 0.1244158697594937,
+    "gap_to_best_model": 0.004958854943805255,
+    "within_gap": false,
+    "improving_last_10": true,
+    "stage2_recommended": true,
+    "n_trials": 25,
+    "elapsed_minutes": 1.66,
+    "stopped_by_time_cap": false,
+    "best_params": {
+      "learning_rate": 0.010334481172332615,
+      "n_estimators": 1600,
+      "num_leaves": 12,
+      "subsample": 0.7585370016849776,
+      "subsample_freq": 1,
+      "colsample_bytree": 0.8890457758417376,
+      "reg_alpha": 0.1434975236616891,
+      "reg_lambda": 0.3706297029479119,
+      "min_child_samples": 7
+    },
+    "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
+    "train_row_filter": "keep_all"
+  },
+  "catboost": {
+    "best_value": 0.11945701481568845,
+    "gap_to_best_model": 0.0,
+    "within_gap": true,
+    "improving_last_10": true,
+    "stage2_recommended": true,
+    "n_trials": 25,
+    "elapsed_minutes": 6.93,
+    "stopped_by_time_cap": false,
+    "best_params": {
+      "learning_rate": 0.03468130004588846,
+      "iterations": 1700,
+      "depth": 5,
+      "l2_leaf_reg": 2.1282355829230637,
+      "subsample": 0.6193953211548652,
+      "rsm": 0.7879485194136726
+    },
+    "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
+    "train_row_filter": "keep_all"
+  },
+  "_rule": {
+    "reference_best_model_cv": 0.11945701481568845,
+    "gap_threshold": 0.003,
+    "improving_window": 10,
+    "improving_tolerance": 0.0001,
+    "overall_tuning_cap_hours": 3.0,
+    "note": "reference = lowest cv_mean in the registry (any model) or this stage's best, whichever is lower; improving = best-so-far dropped by more than the tolerance across the last 10 trials",
+    "stage_elapsed_minutes": 10.77
+  }
+}

@@ -1,5 +1,7 @@
 """Director-owned tests: the holdout can be scored exactly once (binding correction 3)."""
 
+import json
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,7 +13,21 @@ from houseprices import validation
 @pytest.fixture
 def redirected_log(tmp_path, monkeypatch):
     monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "holdout_usage.log")
+    ids_path = tmp_path / "holdout_ids.json"
+    ids_path.write_text(json.dumps({"holdout_ids": list(range(10))}), encoding="utf-8")
+    monkeypatch.setattr(validation.config, "HOLDOUT_IDS_PATH", ids_path)
     return tmp_path / "holdout_usage.log"
+
+
+def test_non_holdout_frame_is_refused_and_does_not_consume_the_use(redirected_log):
+    X, y = _frames()
+    est = DummyRegressor(strategy="mean").fit(X, y)
+    other = X.assign(Id=X["Id"] + 100)          # development-like rows with foreign ids
+    with pytest.raises(ValueError, match="not the registered holdout"):
+        validation.score_holdout_once(est, other, y, "E999")
+    with pytest.raises(ValueError, match="not the registered holdout"):
+        validation.score_holdout_once(est, X.iloc[:5], y.iloc[:5], "E999")   # subset of the holdout
+    assert validation.holdout_usage() == []
 
 
 def _frames():

@@ -23,8 +23,8 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | C2 | Outlier policy CV (train-fold-only filters) | model-researcher | B2 | done | E049–E054; keep_all best for all 3 models; ruling D15 |
 | C3 | LotFrontage imputation comparison (in-fold) | feature-researcher | B2 | done | E043–E048; no method differs beyond noise; ruling D13 keeps neighbourhood median |
 | C4 | Linear family grids (Ridge/Lasso/ElasticNet, scalers) | model-researcher | C1 | done | E055 Ridge 0.1303, E056 Lasso 0.1255, E057 ElasticNet 0.1256; scaler irrelevant; D16 |
-| C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | in-progress (PAUSED 2026-11-13) | XGBoost study complete (25/25, best 0.12307, 2.2 min); LightGBM/CatBoost/CatBoost-native pending; resume same command, SQLite study skips done trials; see SESSION_CHECKPOINT §4/§7 |
-| C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | todo | director approves scope |
+| C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | done | E058 XGB 0.12307, E059 LGBM 0.12442, E060 CatBoost 0.11946 (best single); 10.8 min; `stage1_summary.json` |
+| C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | in-progress | D19: CatBoost-native Stage 1 (25 trials), then Stage 2 CatBoost + LightGBM to 75 trials; no Stage 2 for XGBoost |
 | C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |
 | C8 | Finalists RepeatedKFold 5x3; freeze procedure; single holdout evaluation | director | C7 | blocked | F20: must use seed 7 (D17); implement `CV_SEED_FINALISTS` + `evaluate --seed` first; F21 hardening of the holdout guard |
 | E1 | Interpretability + error analysis + figures | model-researcher | C8 | todo | |

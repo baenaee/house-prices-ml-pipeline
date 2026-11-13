@@ -164,3 +164,22 @@ Agent D verified: all three scripts score only through `_common.run_cv` on devel
 |---|---|---|---|
 | D17 | Finalist stability check uses RepeatedKFold(5x3) with seed 7 (`make_cv(5, 3, 7)`), folds disjoint from the seed-42 selection folds; implement `config.CV_SEED_FINALISTS = 7` and an `evaluate --seed` override on resume | keep seed 42 and report repeats 2–3 separately | F20: with seed 42 one of the three repeats is the selection partition, so the estimate inherits the +0.002 selection optimism. A fresh seed gives an unbiased estimate for the chosen configuration (Agent D's measurement). |
 | D18 | Two test-only data-quality gaps found by Agent A are recorded as known limitations to handle before the submission file is written: the raw `GarageYrBlt` 2207 of test Id 2593 still reaches the linear models through the base features (fix candidate: fold-safe clip to the training range inside the preprocessor); test Id 2550 (5,095 sq ft Edwards partial sale) has the same profile as training outliers 524/1299, so CV cannot settle its prediction; predictions for Ids 2593, 2550 and 1877 are checked by hand | ignore | Both are invisible to CV; documenting them is required for an honest report. |
+
+### 2026-11-13 — E058–E060: boosting Stage 1 (C5), Optuna TPE seed 42, 25 trials per booster
+
+Run by Agent B with `experiments/tuning/run_optuna_stage1.py` on feature set "all", keep_all, one-hot inputs (shared preprocessor, no scaling), 8 threads; the run was in flight during the emergency pause and completed on its own (the SQLite study `experiments/tuning/optuna_stage1.db` holds every trial; per-trial CSVs and logs under `experiments/tuning/`). Total Stage 1 wall time 10.8 min (XGBoost 2.2, LightGBM 1.7, CatBoost 6.9). Stage-2 rule (correction 7): gap to the best model < 0.003 or best-so-far still improving over the last 10 trials.
+
+| id | model | CV RMSE | fold std | minutes | gap to best | improving (last 10) | Stage 2 | best params |
+|---|---|---|---|---|---|---|---|---|
+| E058 | Optuna stage 1: xgboost best of 25 trials | 0.12307 | 0.0191 | 2.18 | 0.0036 | False | False | `{"learning_rate": 0.0392, "n_estimators": 1600, "max_depth": 3, "subsample": 0.7571, "colsample_bytree": 0.7962, "reg_alpha": 0.0015, "reg_lambda": 0.2693, "min_child_weight": 4}` |
+| E059 | Optuna stage 1: lightgbm best of 25 trials | 0.12442 | 0.0191 | 1.66 | 0.0050 | True | True | `{"learning_rate": 0.0103, "n_estimators": 1600, "num_leaves": 12, "subsample": 0.7585, "subsample_freq": 1, "colsample_bytree": 0.889, "reg_alpha": 0.1435, "reg_lambda": 0.3706, "min_child_samples": 7}` |
+| E060 | Optuna stage 1: catboost best of 25 trials | 0.11946 | 0.0170 | 6.93 | 0.0000 | True | True | `{"learning_rate": 0.0347, "iterations": 1700, "depth": 5, "l2_leaf_reg": 2.1282, "subsample": 0.6194, "rsm": 0.7879}` |
+
+Interpretation (director):
+- Tuned CatBoost (E060, 0.11946) is the new best single model, 0.006 better than Lasso E056 (0.12545) and 0.016 better than default XGBoost on the same features (E023 0.13562). Tuning moved XGBoost from 0.1356 to 0.1231 and LightGBM to 0.1244; all three boosters now beat every linear model.
+- Shallow, slow, heavily subsampled boosters win on 993 training rows per fold: depth 3 (XGBoost), 12 leaves (LightGBM), depth 5 (CatBoost), learning rates 0.01–0.04 with 1,600–1,700 rounds, subsample about 0.75.
+- Selection-bias caveat (Agent D, round 4): best-of-25 scores are optimistic by roughly 0.002–0.005; differences below 0.003 between tuned models are not wins. The finalist RepeatedKFold check uses a fresh seed (D17).
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D19 | Stage 2 for CatBoost and LightGBM only (continue the same Optuna studies to 75 trials); none for XGBoost; CatBoost-native (categoricals encoded by CatBoost) gets its own 25-trial Stage 1 first | Stage 2 for all three; skip Stage 2 | Rule of correction 7 applied to `stage1_summary.json`: XGBoost gap 0.0036 > 0.003 and flat since trial 4; LightGBM gap 0.0050 but still improving; CatBoost is the best and still improving. Budget used 10.8 min of the 3 h cap; Stage 2 capped at 60 min, native at 25 min. |

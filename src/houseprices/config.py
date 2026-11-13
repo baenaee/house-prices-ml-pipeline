@@ -59,6 +59,10 @@ LOG_TARGET = "log1p_SalePrice"
 
 CV_N_SPLITS = 5            # model-selection protocol: 5-fold, shuffled, seed 42
 CV_N_REPEATS_FINALISTS = 3  # finalists are re-checked with RepeatedKFold(5 x 3)
+# Finalists use a DIFFERENT seed from the selection folds (audit F20, decision D17): with the
+# selection seed, the first repeat of RepeatedKFold reproduces the very folds every
+# configuration was chosen on and inherits their selection optimism (~+0.002 measured).
+CV_SEED_FINALISTS = 7
 HOLDOUT_FRACTION = 0.15     # single-use holdout, stratified by price decile, carved once
 
 # ---------------------------------------------------------------------------

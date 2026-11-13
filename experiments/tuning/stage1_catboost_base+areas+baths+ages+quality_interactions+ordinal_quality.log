@@ -3,3 +3,5 @@
 [11:54:36] catboost: trial 9 done (10 complete), last=0.12290, best=0.12052, elapsed=2.5 min
 [11:56:07] catboost: trial 14 done (15 complete), last=0.12234, best=0.11975, elapsed=4.0 min
 [11:57:36] catboost: trial 19 done (20 complete), last=0.12112, best=0.11975, elapsed=5.5 min
+[11:59:04] catboost: trial 24 done (25 complete), last=0.12074, best=0.11946, elapsed=6.9 min
+[11:59:04] catboost: finished, best=0.11946, elapsed=6.9 min

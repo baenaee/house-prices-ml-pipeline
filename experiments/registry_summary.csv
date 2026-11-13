@@ -1,4 +1,7 @@
 id,timestamp,agent,title,feature_set,train_row_filter,cv_n_splits,cv_n_repeats,cv_mean,cv_std,fit_seconds,decision,config_hash
+E060,2026-11-13 11:59:04,model-researcher,Optuna stage 1: catboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119457,0.016988,18.82,retain,c8cad1c5c963
+E058,2026-11-13 11:59:04,model-researcher,Optuna stage 1: xgboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.123071,0.019081,4.52,retain,19f60dffcbda
+E059,2026-11-13 11:59:04,model-researcher,Optuna stage 1: lightgbm best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.124416,0.019067,4.05,retain,ab1e21555f3c
 E056,2026-11-13 11:48:10,model-researcher,Lasso best of grid (robust scaler),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.12545,0.023481,0.69,retain,78d4d9be38aa
 E057,2026-11-13 11:48:10,model-researcher,ElasticNet best of grid (robust scaler),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125549,0.023005,0.74,retain,42b9c741b462
 E042,2026-11-13 11:39:03,feature-researcher,Ablation: base+areas+baths+ages+quality_interactions+ordinal_quality + skew_log1p / elasticnet,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125622,0.023348,1.05,retain,40d4075b8edd
@@ -38,8 +41,8 @@ E024,2026-11-13 11:38:31,feature-researcher,Ablation: base+baths+ages+quality_in
 E045,2026-11-13 11:39:08,feature-researcher,LotFrontage knn / ridge / base,base,keep_all,5,1,0.140476,0.031246,0.94,retain,d4dca34237eb
 E053,2026-11-13 11:41:46,model-researcher,Outlier policy drop_candidate_outliers | XGBoost | all features,base+areas+baths+ages+quality_interactions+ordinal_quality,drop_candidate_outliers,5,1,0.140623,0.022907,1.24,reject,c2a8683c1680
 E009,2026-11-13 11:38:14,feature-researcher,Ablation: base+baths / ridge,base+baths,keep_all,5,1,0.140859,0.031246,0.69,investigate,090b8cc4b1c1
-E043,2026-11-13 11:39:06,feature-researcher,LotFrontage neighborhood_median / ridge / base,base,keep_all,5,1,0.140883,0.031594,0.48,retain,c9e0dfe60d91
 E003,2026-11-13 11:36:51,model-researcher,"Ridge alpha=10, one-hot",base,keep_all,5,1,0.140883,0.031594,1.15,retain,228caf1d4c77
+E043,2026-11-13 11:39:06,feature-researcher,LotFrontage neighborhood_median / ridge / base,base,keep_all,5,1,0.140883,0.031594,0.48,retain,c9e0dfe60d91
 E012,2026-11-13 11:38:17,feature-researcher,Ablation: base+ages / ridge,base+ages,keep_all,5,1,0.140941,0.031746,0.77,investigate,e2e8a54750c9
 E006,2026-11-13 11:38:10,feature-researcher,Ablation: base+areas / ridge,base+areas,keep_all,5,1,0.140973,0.031855,0.78,investigate,3663ce3804a7
 E044,2026-11-13 11:39:07,feature-researcher,LotFrontage global_median / ridge / base,base,keep_all,5,1,0.140993,0.031672,0.7,reject,5e5b218a9858

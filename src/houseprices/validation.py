@@ -250,6 +250,22 @@ def holdout_usage() -> list[dict]:
     return [json.loads(line) for line in HOLDOUT_USAGE_LOG.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def _assert_is_holdout_frame(X: pd.DataFrame) -> None:
+    """F21: refuse to spend the single use on anything but the registered holdout rows."""
+    path = config.HOLDOUT_IDS_PATH
+    if not path.exists():
+        raise FileNotFoundError(f"{path} does not exist; the holdout was never carved")
+    expected = set(json.loads(path.read_text(encoding="utf-8"))["holdout_ids"])
+    if config.ID_COL not in X.columns:
+        raise ValueError("the holdout frame must carry the Id column")
+    got = set(int(i) for i in X[config.ID_COL])
+    if got != expected:
+        raise ValueError(
+            f"frame is not the registered holdout: {len(got & expected)} of {len(expected)} holdout ids present, "
+            f"{len(got - expected)} foreign ids"
+        )
+
+
 def score_holdout_once(
     fitted_estimator: BaseEstimator,
     X_holdout: pd.DataFrame,
@@ -265,6 +281,7 @@ def score_holdout_once(
     is logged with ``"forced": true`` so the report must declare that the holdout is no longer
     an unbiased estimate (binding correction 3).
     """
+    _assert_is_holdout_frame(X_holdout)
     used = holdout_usage()
     if used and not force:
         raise HoldoutAlreadyUsedError(
