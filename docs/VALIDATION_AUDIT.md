@@ -6,6 +6,8 @@ Independent review of the binding methodology (decisions D1-D6, requirements R1-
 
 Test result (houseprices env, Python 3.12): `19 passed, 3 xfailed`. The three xfails are strict and pin findings F1-F3; they flip to failures when the code is fixed, which is the signal to remove the marker.
 
+> Open at the 2026-11-13 pause: F27 (non-atomic registry append, accepted limitation under the single-writer rule), F28 (pickled artefacts, note), F22/F23 (info: 3 h cap not enforced in code, automatic retain decisions are provisional); no blocking concern. Not yet audited: Stage 2 tuning scripts and any new experiment runners added after round 5.
+
 > Status: round 1 complete (F1-F8 closed or noted). Round 2 (Phase A pipeline: cleaning, features, preprocess, models, data, runner) complete on 2026-11-13, see section 5. Phase A SIGN-OFF: approved, baselines E001-E004 may run. Ensembles, outlier-policy and tuning scripts and the final pipeline remain for later rounds.
 
 ## 2. Round 1 findings

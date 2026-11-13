@@ -1181,3 +1181,15 @@ def test_f24_f25_f26_fixes(tmp_registry, tmp_path, monkeypatch):
     (tmp_path / "usage.log").write_text(json.dumps({"timestamp": "t", "frozen_experiment_id": "E901", "forced": False}) + chr(10))
     _, meta = _train.fit_registered("E901", "all", out_dir=tmp_path / "m", verbose=False)
     assert meta["includes_holdout_rows"] is True and meta["holdout_scored_before_fit"] is True
+
+
+def test_year_clipper_learns_only_from_fit_rows_and_clips_unseen_years():
+    a = pd.DataFrame({"YearBuilt": [1900.0, 1950.0, 2000.0], "GarageYrBlt": [np.nan, 1960.0, 2005.0]})
+    b = pd.DataFrame({"YearBuilt": [1800.0, 1990.0, 2010.0], "GarageYrBlt": [1990.0, 1995.0, 2007.0]})
+    ca, cb = preprocess.YearRangeClipper().fit(a), preprocess.YearRangeClipper().fit(b)
+    assert ca.ranges_["YearBuilt"] == (1900.0, 2000.0) and cb.ranges_["YearBuilt"] == (1800.0, 2010.0)
+    unseen = pd.DataFrame({"YearBuilt": [1895.0, 2300.0], "GarageYrBlt": [2207.0, np.nan]})
+    out = ca.transform(unseen)
+    assert out["YearBuilt"].tolist() == [1895.0, 2000.0]            # upper bound only; old years kept
+    assert out["GarageYrBlt"].iloc[0] == 2005.0 and np.isnan(out["GarageYrBlt"].iloc[1])
+    assert ca.ranges_["YearBuilt"] == (1900.0, 2000.0)              # transform learned nothing
