@@ -22,7 +22,7 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | C1 | Feature ablations (groups on/off, 3 models) | feature-researcher | B2 | done | E005–E042, 2026-11-13; ruling D11 (feature set "all") and D12 (skew for linear models); E042 reproduces |
 | C2 | Outlier policy CV (train-fold-only filters) | model-researcher | B2 | done | E049–E054; keep_all best for all 3 models; ruling D15 |
 | C3 | LotFrontage imputation comparison (in-fold) | feature-researcher | B2 | done | E043–E048; no method differs beyond noise; ruling D13 keeps neighbourhood median |
-| C4 | Linear family grids (Ridge/Lasso/ElasticNet, scalers) | model-researcher | C1 | in-progress | 136-point grid on "all"+skew, keep_all |
+| C4 | Linear family grids (Ridge/Lasso/ElasticNet, scalers) | model-researcher | C1 | done | E055 Ridge 0.1303, E056 Lasso 0.1255, E057 ElasticNet 0.1256; scaler irrelevant; D16 |
 | C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | in-progress | queued after C4; cap 45 min + 25 min CatBoost-native; overall tuning cap 3 h |
 | C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | todo | director approves scope |
 | C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |

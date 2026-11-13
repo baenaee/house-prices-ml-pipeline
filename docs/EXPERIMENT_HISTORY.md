@@ -130,3 +130,24 @@ Interpretation (Agent B, confirmed by the director): keep_all ranks first for al
 | # | Decision | Alternatives considered | Ruling and evidence |
 |---|---|---|---|
 | D15 | Training-row filter is keep_all for all remaining experiments and for the final fit | drop Ids 524 and 1299; drop GrLivArea > 4000 | Table above: no policy beats keep_all for any model; three of six cells are worse beyond one paired SE, the rest within noise. The final model is therefore trained on all development rows (and later all training rows). Robustness to extreme houses is measured, not assumed. |
+
+### 2026-11-13 — E055–E057: linear family grids (C4)
+
+Run by Agent B with `experiments/models/run_linear_family.py` on feature set "all", keep_all, skew_log1p in-fold, both RobustScaler and StandardScaler; 136 five-fold CVs in total (Ridge 30, Lasso 26, ElasticNet 80), about one second each; only the best per family is registered, the full grid is in `experiments/models/linear_grid_base+areas+baths+ages+quality_interactions+ordinal_quality_keep_all.csv`. One ConvergenceWarning in 136 fits (ElasticNet, smallest alpha).
+
+| id | model | best hyper-parameters | scaler | CV RMSE | fold std | fold scores |
+|---|---|---|---|---|---|---|
+| E055 | Ridge | alpha = 10 | standard | 0.13028 | 0.0232 | 0.113, 0.160, 0.148, 0.105, 0.126 |
+| E056 | Lasso | alpha = 5.62e-4 | robust | 0.12545 | 0.0235 | 0.110, 0.155, 0.144, 0.098, 0.120 |
+| E057 | ElasticNet | alpha = 1.18e-3, l1_ratio = 0.5 | robust | 0.12555 | 0.0230 | 0.109, 0.155, 0.143, 0.099, 0.122 |
+
+Interpretation (director):
+- The L1 family (Lasso, ElasticNet) beats Ridge by about 0.005, consistently in every fold: with roughly 300 one-hot plus engineered columns and 993 training rows per fold, sparsity removes rare one-hot levels that Ridge can only shrink.
+- Ridge's alpha curve is flat around 10 (5.6 and 10 differ by 0.0002); Lasso has a sharp optimum near 5e-4 (alpha 1e-3 is 0.001 worse). ElasticNet's best is essentially a Lasso-like point (l1_ratio 0.5–0.9 within 0.0003).
+- Scaler: robust vs standard differ by at most 0.0001 for every family. Irrelevant on this data, kept robust (default) for Lasso/ElasticNet and standard for Ridge as registered.
+- Fold 2 (which holds Id 524) remains the hard fold for every linear model (0.155–0.160).
+- Selection-bias caveat: 136 grid points were compared on the same five folds; the registered bests are optimistically biased by an amount that Agent D's round 4 estimates; the finalist RepeatedKFold 5x3 and the single-use holdout bound it.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D16 | Linear finalists are Lasso E056 and ElasticNet E057; Ridge E055 is kept only as an ensemble base candidate | tune Ridge further; drop Ridge | Ridge is 0.005 worse in every fold; its alpha curve is flat, so more tuning cannot close the gap. It remains a cheap, differently regularised base for the blending/stacking diversity analysis. |
