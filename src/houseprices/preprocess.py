@@ -90,6 +90,49 @@ class SkewLog1pTransformer(TransformerMixin, BaseEstimator):
         return np.asarray(self.feature_names_in_ if input_features is None else input_features, dtype=object)
 
 
+YEAR_LIKE_COLUMNS = ("YearBuilt", "YearRemodAdd", "GarageYrBlt", "YrSold")
+
+
+class YearRangeClipper(TransformerMixin, BaseEstimator):
+    """Clip year-like columns to the largest year seen in the TRAINING fold (NaN stays NaN).
+
+    ``fit`` learns the range of each of ``YEAR_LIKE_COLUMNS`` that is present in the frame
+    (NaN ignored; an all-NaN column is left alone). ``transform`` returns a DataFrame with the
+    same columns where years above the training maximum are set to that maximum. By default only
+    the UPPER bound is applied (``lower=False``): a year beyond the training maximum is impossible
+    for this data (e.g. GarageYrBlt 2207, test Id 2593) while an old year such as 1895 is a real
+    value. ``lower=True`` also clips at the training minimum.
+    The purpose is protection at prediction time: a linear model would otherwise extrapolate
+    such a year ~200 years. On the development data every year lies inside the training range,
+    so within cross-validation this step changes nothing. Columns routed to the categorical
+    branch (``YrSold``) never reach it, because only numeric columns are given here.
+    """
+
+    def __init__(self, lower: bool = False):
+        self.lower = lower
+
+    def fit(self, X: pd.DataFrame, y=None) -> "YearRangeClipper":
+        frame = X if isinstance(X, pd.DataFrame) else pd.DataFrame(np.asarray(X))
+        self.feature_names_in_ = np.array([str(c) for c in frame.columns], dtype=object)
+        self.ranges_ = {}
+        for col in YEAR_LIKE_COLUMNS:
+            if col in frame.columns:
+                values = frame[col].astype("float64")
+                if values.notna().any():
+                    self.ranges_[col] = (float(values.min()), float(values.max()))
+        return self
+
+    def transform(self, X: pd.DataFrame) -> pd.DataFrame:
+        out = X.copy()
+        for col, (low, high) in self.ranges_.items():
+            if col in out.columns:
+                out[col] = out[col].astype("float64").clip(lower=low if self.lower else None, upper=high)
+        return out
+
+    def get_feature_names_out(self, input_features=None) -> np.ndarray:
+        return np.asarray(self.feature_names_in_ if input_features is None else input_features, dtype=object)
+
+
 # Predictors used by the optional KNN LotFrontage imputer (lot size and house size/quality).
 KNN_LOTFRONTAGE_PREDICTORS = ["LotArea", "1stFlrSF", "GrLivArea", "OverallQual", "YearBuilt"]
 
@@ -145,6 +188,7 @@ def make_preprocessor(
     one_hot: bool = True,
     lotfrontage: str = "neighborhood_median",
     skew_log1p: bool = False,
+    clip_years: bool = False,
 ) -> ColumnTransformer:
     """Build an unfitted ColumnTransformer for the columns of ``X_sample``.
 
@@ -157,6 +201,8 @@ def make_preprocessor(
       lot/house size (``"knn"``, in-fold).
     * ``skew_log1p=True`` puts a ``SkewLog1pTransformer`` before the numeric imputer. It applies to the numeric branch only,
       not to the LotFrontage branch (which keeps its own imputation and is not log-transformed).
+    * ``clip_years=True`` puts a ``YearRangeClipper`` (upper bound only) first in the numeric branch (before skew, imputation
+      and scaling); a no-op on the development data, a guard against impossible years at prediction time.
 
     ``X_sample`` is used ONLY to read column names and dtypes, never values.
     """
@@ -185,7 +231,9 @@ def make_preprocessor(
         transformers.append(("lotfrontage", Pipeline(steps), ["LotFrontage", *KNN_LOTFRONTAGE_PREDICTORS]))
 
     if numeric:
-        steps = [("skew", SkewLog1pTransformer())] if skew_log1p else []
+        steps = [("clip_years", YearRangeClipper())] if clip_years else []
+        if skew_log1p:
+            steps.append(("skew", SkewLog1pTransformer()))
         steps.append(("impute", SimpleImputer(strategy=numeric_strategy)))
         if scale:
             steps.append(("scale", RobustScaler()))

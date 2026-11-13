@@ -259,3 +259,79 @@ def test_knn_lotfrontage_option(frames):
     assert pre.fit_transform(X).shape == preprocess.make_preprocessor(X).fit_transform(X).shape
     with pytest.raises(ValueError):
         preprocess.make_preprocessor(X, lotfrontage="mode")
+
+
+# ---------------------------------------------------------------------------
+# YearRangeClipper (opt-in guard for impossible years at prediction time)
+# ---------------------------------------------------------------------------
+
+ALL_SET = "base+areas+baths+ages+quality_interactions+ordinal_quality"
+E056_KWARGS = {"alpha": 0.0005623413251903491, "scaler": "robust"}
+
+
+@pytest.fixture(scope="module")
+def dev_all():
+    from houseprices import data
+    return data.load_development_data(ALL_SET, with_holdout_split=True)
+
+
+def test_year_clipper_fit_uses_fit_rows_only():
+    X = pd.DataFrame({"YearBuilt": [1950.0, 1960, 1970, 2000], "GarageYrBlt": [np.nan, 1955, 1965, 2100],
+                      "LotArea": [1.0, 2, 3, 4]})
+    full = preprocess.YearRangeClipper().fit(X)
+    part = preprocess.YearRangeClipper().fit(X.iloc[:3])
+    assert full.ranges_ == {"YearBuilt": (1950.0, 2000.0), "GarageYrBlt": (1955.0, 2100.0)}
+    assert part.ranges_ == {"YearBuilt": (1950.0, 1970.0), "GarageYrBlt": (1955.0, 1965.0)}
+    out = part.transform(X)
+    assert out["YearBuilt"].tolist() == [1950, 1960, 1970, 1970]
+    low = preprocess.YearRangeClipper().fit(X.iloc[1:])
+    assert low.transform(X)["YearBuilt"].tolist()[0] == 1950             # default: lower bound not applied
+    assert preprocess.YearRangeClipper(lower=True).fit(X.iloc[1:]).transform(X)["YearBuilt"].tolist()[0] == 1960
+    assert np.isnan(out.loc[0, "GarageYrBlt"]) and out.loc[3, "GarageYrBlt"] == 1965
+    assert out["LotArea"].tolist() == X["LotArea"].tolist()          # non-year columns untouched
+    assert X.loc[3, "YearBuilt"] == 2000                              # input not modified
+
+
+def test_year_clipper_ignores_missing_year_columns():
+    X = pd.DataFrame({"LotArea": [1.0, 2.0]})
+    assert preprocess.YearRangeClipper().fit(X).ranges_ == {}
+
+
+def test_year_clipper_is_noop_on_development_rows(dev_all):
+    from houseprices import models
+    X = dev_all.X
+    numeric, _ = preprocess.split_columns(X.drop(columns=["Id"]))
+    clip = preprocess.YearRangeClipper().fit(X[numeric])
+    assert set(clip.ranges_) == {"YearBuilt", "YearRemodAdd", "GarageYrBlt"}   # YrSold is categorical here
+    pd.testing.assert_frame_equal(clip.transform(X[numeric]), X[numeric].astype("float64"),
+                                  check_dtype=False)
+    base = models.build_lasso(**E056_KWARGS, preprocessor_kwargs={"skew_log1p": True})
+    clipped = models.build_lasso(**E056_KWARGS, preprocessor_kwargs={"skew_log1p": True, "clip_years": True})
+    base.fit(X, dev_all.y_log)
+    clipped.fit(X, dev_all.y_log)
+    np.testing.assert_array_equal(base.predict(X), clipped.predict(X))
+
+
+def test_year_clipper_on_test_changes_only_garage_2207(dev_all):
+    """Upper bound only (D20): Id 2593 2207 -> training max; the 1895/1896 garages are left alone."""
+    X, T = dev_all.X, dev_all.X_test
+    numeric, _ = preprocess.split_columns(X.drop(columns=["Id"]))
+    clip = preprocess.YearRangeClipper().fit(X[numeric])
+    before, after = T[numeric].astype("float64"), clip.transform(T[numeric])
+    changed = before.ne(after) & ~(before.isna() & after.isna())
+    rows, cols = np.nonzero(changed.to_numpy())
+    found = {(int(T["Id"].iloc[r]), numeric[c], before.iloc[r, c], after.iloc[r, c]) for r, c in zip(rows, cols)}
+    assert found == {(2593, "GarageYrBlt", 2207.0, 2010.0)}
+    assert after["GarageYrBlt"].max() == X["GarageYrBlt"].max()
+    # the optional two-sided version also lifts the two garages older than the training minimum
+    both = preprocess.YearRangeClipper(lower=True).fit(X[numeric]).transform(T[numeric])
+    assert int((before.ne(both) & ~(before.isna() & both.isna())).to_numpy().sum()) == 3
+
+
+def test_make_preprocessor_clip_years_option(dev_all):
+    X = dev_all.X.drop(columns=["Id"])
+    pre = preprocess.make_preprocessor(X, clip_years=True, skew_log1p=True)
+    out = pre.fit_transform(X)
+    assert not np.isnan(out).any()
+    assert [n for n, _ in pre.named_transformers_["numeric"].steps][:2] == ["clip_years", "skew"]
+    assert [n for n, _ in preprocess.make_preprocessor(X).fit(X).named_transformers_["numeric"].steps] == ["impute", "scale"]
