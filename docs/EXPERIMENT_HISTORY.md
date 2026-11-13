@@ -183,3 +183,11 @@ Interpretation (director):
 | # | Decision | Alternatives considered | Ruling and evidence |
 |---|---|---|---|
 | D19 | Stage 2 for CatBoost and LightGBM only (continue the same Optuna studies to 75 trials); none for XGBoost; CatBoost-native (categoricals encoded by CatBoost) gets its own 25-trial Stage 1 first | Stage 2 for all three; skip Stage 2 | Rule of correction 7 applied to `stage1_summary.json`: XGBoost gap 0.0036 > 0.003 and flat since trial 4; LightGBM gap 0.0050 but still improving; CatBoost is the best and still improving. Budget used 10.8 min of the 3 h cap; Stage 2 capped at 60 min, native at 25 min. |
+
+### 2026-11-13 — F20/F21 verified; finalist step unblocked
+
+Agent D verified the director's fixes: `score_holdout_once` refuses any frame whose Id set is not the registered holdout (F21), and the finalist folds (`CV_SEED_FINALISTS = 7`) share no fold with the seed-42 selection partition (maximum validation overlap 25 % vs 20 % by chance). Independent bias check: Lasso E056 scores 0.1282 on the seed-7 folds against 0.1255 registered, i.e. +0.0027 selection optimism, consistent with the Ridge-grid estimate. Suite: 199 passed, no xfails.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D20 | The opt-in `YearRangeClipper` (preprocess `clip_years=True`) clips the UPPER bound only, learned from the training fold | clip to [min, max] | Agent A found that two-sided clipping would also move test Ids 1603/2218 (garages built 1896/1895) to the 1900 training minimum; those are real values. Only years beyond the training maximum are impossible (Id 2593, 2207 → 2010). Provably a no-op on development rows, so CV scores are unaffected. |

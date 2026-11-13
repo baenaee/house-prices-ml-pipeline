@@ -26,9 +26,9 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | done | E058 XGB 0.12307, E059 LGBM 0.12442, E060 CatBoost 0.11946 (best single); 10.8 min; `stage1_summary.json` |
 | C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | in-progress | D19: CatBoost-native Stage 1 (25 trials), then Stage 2 CatBoost + LightGBM to 75 trials; no Stage 2 for XGBoost |
 | C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |
-| C8 | Finalists RepeatedKFold 5x3; freeze procedure; single holdout evaluation | director | C7 | blocked | F20: must use seed 7 (D17); implement `CV_SEED_FINALISTS` + `evaluate --seed` first; F21 hardening of the holdout guard |
+| C8 | Finalists RepeatedKFold 5x3 (seed 7); freeze procedure; single holdout evaluation | director | C7 | todo | UNBLOCKED 2026-11-13: F20/F21 verified fixed by D (seed-7 folds share no fold with seed 42; E056 fresh-fold 0.1282 vs 0.1255 registered = +0.0027 optimism) |
 | E1 | Interpretability + error analysis + figures | model-researcher | C8 | todo | |
-| F1 | `evaluate.py`, `train.py`, `predict.py`, end-to-end test, submission file (not submitted) | director | C8 | todo | |
+| F1 | `evaluate.py`, `train.py`, `predict.py`, end-to-end test, submission file (not submitted) | director | C8 | in-progress | train/predict + `tests/test_pipeline_end_to_end.py` done (commit 8e1e257); final submission file after C8 |
 | F2 | Final independent review of pipeline and claims | validation-auditor | F1 | todo | |
 | D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | todo | mandatory deliverables |
 

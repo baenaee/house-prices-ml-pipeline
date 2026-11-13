@@ -995,8 +995,17 @@ def test_holdout_is_disjoint_from_development_and_has_219_rows(dev):
     assert len(dev.X_holdout) == 219
 
 
-@pytest.mark.xfail(strict=True, reason="F21: score_holdout_once accepts any frame, so a mistaken call with development rows consumes the single use")
 def test_holdout_guard_rejects_non_holdout_frame(dev, usage_log):
     est = _fitted_ridge(dev)
     with pytest.raises(ValueError):
         validation.score_holdout_once(est, dev.X.iloc[:219], dev.y_log.iloc[:219], "E999")
+
+
+def test_finalist_seed_folds_share_no_fold_with_selection_partition():
+    """F20 (D17): config.CV_SEED_FINALISTS gives folds that differ from the seed-42 selection folds."""
+    idx = np.arange(1241)
+    sel = [set(v) for _, v in validation.make_cv(5, 1, config.SEED).split(idx)]
+    fin = [set(v) for _, v in validation.make_cv(5, 3, config.CV_SEED_FINALISTS).split(idx)]
+    assert config.CV_SEED_FINALISTS != config.SEED and len(fin) == 15
+    assert not any(f in sel for f in fin)
+    assert max(len(f & s) / len(f) for f in fin for s in sel) < 0.35
