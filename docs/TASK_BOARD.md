@@ -26,12 +26,12 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | in-progress (PAUSED 2026-11-13) | XGBoost study complete (25/25, best 0.12307, 2.2 min); LightGBM/CatBoost/CatBoost-native pending; resume same command, SQLite study skips done trials; see SESSION_CHECKPOINT §4/§7 |
 | C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | todo | director approves scope |
 | C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |
-| C8 | Finalists RepeatedKFold 5x3; freeze procedure; single holdout evaluation | director | C7 | todo | |
+| C8 | Finalists RepeatedKFold 5x3; freeze procedure; single holdout evaluation | director | C7 | blocked | F20: must use seed 7 (D17); implement `CV_SEED_FINALISTS` + `evaluate --seed` first; F21 hardening of the holdout guard |
 | E1 | Interpretability + error analysis + figures | model-researcher | C8 | todo | |
 | F1 | `evaluate.py`, `train.py`, `predict.py`, end-to-end test, submission file (not submitted) | director | C8 | todo | |
 | F2 | Final independent review of pipeline and claims | validation-auditor | F1 | todo | |
 | D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | todo | mandatory deliverables |
 
 | R1 | Recovery audit after 2026-11-13 Cloudflare 403 failure: originals hashed, dirty files reviewed, tests run | director | – | done | see EXPERIMENT_HISTORY 2026-11-13 entry; 96 passed / 12 stale agent tests failing at recovery |
-| R2 | Audit round 4 (tuning/grid scripts, holdout guard, selection bias) | validation-auditor | C4, C5 | in-progress (PAUSED) | VALIDATION_AUDIT §7 marked in progress, not signed off |
-| R3 | Study guide drafts (part 1 data/features by A; part 3 ensembles by C) | feature-researcher, ensemble-researcher | C1, C0 | in-progress | part 3 done (2,266 words, committed); part 1 incomplete at pause |
+| R2 | Audit round 4 (tuning/grid scripts, holdout guard, selection bias) | validation-auditor | C4, C5 | done | §7 signed off: tuning admissible; F20 Medium blocks C8 (fresh seed, D17); F21 Low; selection optimism +0.002 measured |
+| R3 | Study guide drafts (part 1 data/features by A; part 3 ensembles by C) | feature-researcher, ensemble-researcher | C1, C0 | review | part 1 (5,290 words) and part 3 (2,266 words) complete; director to review and merge into STUDY_GUIDE.md |
