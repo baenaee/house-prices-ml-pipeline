@@ -24,14 +24,15 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | C3 | LotFrontage imputation comparison (in-fold) | feature-researcher | B2 | done | E043–E048; no method differs beyond noise; ruling D13 keeps neighbourhood median |
 | C4 | Linear family grids (Ridge/Lasso/ElasticNet, scalers) | model-researcher | C1 | done | E055 Ridge 0.1303, E056 Lasso 0.1255, E057 ElasticNet 0.1256; scaler irrelevant; D16 |
 | C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | done | E058 XGB 0.12307, E059 LGBM 0.12442, E060 CatBoost 0.11946 (best single); 10.8 min; `stage1_summary.json` |
-| C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | in-progress | D19: CatBoost-native Stage 1 (25 trials), then Stage 2 CatBoost + LightGBM to 75 trials; no Stage 2 for XGBoost |
-| C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |
+| C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | in-progress (PAUSED 2026-11-13 12:20) | D19: catboost_native Stage 1 time-capped (3–4 of 25 trials, best ~0.1241, see checkpoint §4/§7); Stage 2 CatBoost+LightGBM to 75 trials NOT started; SQLite study resumes |
+| C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | diversity done (`diversity_20261113_121446.csv`); E061–E064 registered on Stage 1 bases (premature, kept); full run with final bases after C6, on GO |
 | C8 | Finalists RepeatedKFold 5x3 (seed 7); freeze procedure; single holdout evaluation | director | C7 | todo | UNBLOCKED 2026-11-13: F20/F21 verified fixed by D (seed-7 folds share no fold with seed 42; E056 fresh-fold 0.1282 vs 0.1255 registered = +0.0027 optimism) |
-| E1 | Interpretability + error analysis + figures | model-researcher | C8 | todo | |
+| E1 | Interpretability + error analysis + figures | model-researcher | C8 | todo | after finalists |
 | F1 | `evaluate.py`, `train.py`, `predict.py`, end-to-end test, submission file (not submitted) | director | C8 | in-progress | train/predict + `tests/test_pipeline_end_to_end.py` done (commit 8e1e257); final submission file after C8 |
 | F2 | Final independent review of pipeline and claims | validation-auditor | F1 | todo | |
-| D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | todo | mandatory deliverables |
+| D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | in-progress | README draft committed; study-guide drafts parts 1, 2a complete, 2b and 3-update in progress (A, C); audit-packet claims draft in progress (D); boosting chapter not started |
 
 | R1 | Recovery audit after 2026-11-13 Cloudflare 403 failure: originals hashed, dirty files reviewed, tests run | director | – | done | see EXPERIMENT_HISTORY 2026-11-13 entry; 96 passed / 12 stale agent tests failing at recovery |
 | R2 | Audit round 4 (tuning/grid scripts, holdout guard, selection bias) | validation-auditor | C4, C5 | done | §7 signed off: tuning admissible; F20 Medium blocks C8 (fresh seed, D17); F21 Low; selection optimism +0.002 measured |
-| R3 | Study guide drafts (part 1 data/features by A; part 3 ensembles by C) | feature-researcher, ensemble-researcher | C1, C0 | review | part 1 (5,290 words) and part 3 (2,266 words) complete; director to review and merge into STUDY_GUIDE.md |
+| R3 | Study guide drafts (parts 1, 2a, 2b by A; part 3 by C) | feature-researcher, ensemble-researcher | C1, C0 | in-progress | 1 (5,730 w) and 2a (4,159 w) complete; 2b and the real-diversity update of 3 at pause state (checkpoint §7) |
+| R4 | Controlled pause V3 (2026-11-13 12:20): all teammates stopped, state audited, checkpoint written | director | – | done | see SESSION_CHECKPOINT; 214 tests passing; holdout never scored |

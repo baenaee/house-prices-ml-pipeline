@@ -1,78 +1,63 @@
-# Session checkpoint — 2026-11-13 (emergency pause, usage limit)
+# Session checkpoint — 2026-11-13, 12:20 (controlled pause V3, usage limit)
 
-Purpose: let the next Claude session continue the research without restarting it. Read this file, then `docs/TASK_BOARD.md`, `docs/EXPERIMENT_HISTORY.md` (decisions D1–D16 are binding), `docs/VALIDATION_AUDIT.md`, the approved plan at `C:\Users\Enrique Baena\.claude\plans\pasted-content-id-b077-create-an-smooth-charm.md`, and paste `docs/RESUME_PROMPT.md` to start. The previous checkpoint (2026-11-11) is superseded; its content is folded in below.
+Purpose: let the next Claude session continue without restarting. Read this file, then `docs/TASK_BOARD.md`, `docs/EXPERIMENT_HISTORY.md` (decisions D1–D20 binding), `docs/VALIDATION_AUDIT.md` (§5–§8, F1–F28), `README.md`, the approved plan at `C:\Users\Enrique Baena\.claude\plans\pasted-content-id-b077-create-an-smooth-charm.md`, and start the new session with `docs/RESUME_PROMPT.md`. Earlier checkpoints are superseded.
 
 ## 1. Repository state
 
-- Git: `C:\Program Files\Git\cmd\git.exe` (not on PATH). Commit sequence this session: `651fb01` recovery + audit round 2 → `582bf86` baselines + holdout → `4b9ff5d` audit addendum → `0898b38` ablations → `235d730` holdout guard → `da61efd` outlier policy → `de19412` notebook 02 → `87de393` ensemble runner → `d337e09` study-guide draft 3 → `37cc669` linear grids → FINAL checkpoint commit (see `git log -1`). Working tree clean after the final commit.
-- Originals byte-identical to `fedba71` (SHA-256 verified 2026-11-13: `HousePricing.ipynb` 1BB32B57…, `train.csv` 1E18ADDF…, `test.csv` 8FDD3D82…). Backup ZIP: `C:\Users\Enrique Baena\Desktop\HousePricingKaglle_original_2026-11-11.zip`.
-- Environment: conda env `houseprices`, python `C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe` (3.12; pandas 2.3.3 pinned, scikit-learn 1.9.1, xgboost 3.4.1, lightgbm 4.7.0, catboost 1.2.10, optuna 5.0.0, shap 0.54.1). Plain `python` is NOT on PATH. `requirements.txt`/`environment.yml` unchanged.
-- Tests: `& "<env python>" -m pytest tests` (pyproject sets `-q`; passing `-q` again hides the summary line) → **191 passed, 1 xfailed** at pause time (the xfail is Agent D's strict pin of an open finding in round 4, see §5).
-- Known tooling quirk: writing files through Bash heredocs collapses doubled backslashes; build escapes with `chr()` or use the Edit/Write tools.
-- Separate, NOT fixed on purpose: `node: command not found` hook error comes from user-level `~/.claude/settings.json` (pixel-agents hooks); unrelated to this project.
+- Git: `C:\Program Files\Git\cmd\git.exe` (not on PATH). Commits this session (2026-11-13), oldest first: `651fb01` recovery + audit round 2 · `582bf86` baselines + holdout · `4b9ff5d` · `0898b38` ablations · `235d730` holdout guard · `da61efd` outlier policy · `de19412` notebook 02 · `87de393` ensemble runner · `d337e09` · `37cc669` linear grids · `899f845`/`7156f9e`/`a01d426` emergency checkpoint 1 · `62b3b87` Stage 1 + D17/F21 · `8e1e257` train/predict · `b6c0f46` F20/F21 verified · `d2e4ac7` finalists script · `2f1b35d` year clipper · `7a87dd1` ensembles E061–E064 · `e1fba94` · `5e40924` F24–F26 fixes · `d2756bf` README draft · `e7fcbb8` · `f851604` F24–F26 verified · FINAL pause commit (see `git log -1`). Working tree clean after it.
+- Originals byte-identical to `fedba71` (SHA-256 re-verified 12:20: notebook 1BB32B57…, train 1E18ADDF…, test 8FDD3D82…). Backup ZIP on the Desktop (2026-11-11).
+- Environment: conda env `houseprices`; python `C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe` (3.12; pandas 2.3.3, scikit-learn 1.9.1, xgboost 3.4.1, lightgbm 4.7.0, catboost 1.2.10, optuna 5.0.0, shap 0.54.1). Plain `python` not on PATH.
+- Tests: `& "<env python>" -m pytest tests` → **214 passed, 0 failed, 0 xfail** at the pause (12:21). Do not add `-q` (pyproject already sets it; the summary line disappears).
+- Tooling notes: Bash heredocs in this harness collapse doubled backslashes and sometimes fail on long content; write scripts to the scratchpad with the Write tool and run them. User-level `~/.claude/settings.json` has pixel-agents hooks calling `node` (not installed) → harmless hook error, not ours.
 
 ## 2. Completed phases and results
 
-Phase 0, Phase A (audited, signed off §5 of VALIDATION_AUDIT), Phase B baselines, C1 ablations, C2 outlier policy, C3 LotFrontage, C4 linear grids are DONE. Registry: `experiments/registry.jsonl` has **57 experiments (E001–E057)** plus whatever Stage 1 registered after E057 (see §4 and §7). Holdout: `experiments/holdout_ids.json` (219 ids, seed 42, decile-stratified) created 2026-11-13 11:36 and committed; `experiments/holdout_usage.log` does NOT exist (holdout never scored).
+Done and audited: Phase 0; Phase A (cleaning/features/preprocess, §5 sign-off); Phase B baselines E001–E004; C1 ablations E005–E042; C3 LotFrontage E043–E048; C2 outlier policy E049–E054; C4 linear grids E055–E057; C5 Stage 1 one-hot boosters E058–E060; premature ensembles on Stage 1 bases E061–E064 (valid, see §4); diversity diagnostic; audit rounds 1–5 (F1–F28 all closed or accepted: F27 non-atomic registry, F28 pickles); F1 tooling `train.py`/`predict.py` + end-to-end test; C8 tooling `experiments/finalists/run_finalists.py` (not run).
 
-Best validated scores so far (KFold 5, shuffle, seed 42, development set 1,241 rows, RMSE on log1p):
+Registry: `experiments/registry.jsonl`, **64 experiments, latest id E064** (unless the capped native study registered E065 after 12:20, see §4), no duplicate ids or hashes, each `cv_mean` equals the mean of its fold scores (auditor check). Holdout: `experiments/holdout_ids.json` (219 ids, seed 42, decile-stratified), **never scored**: `experiments/holdout_usage.log` does not exist.
 
-| id | model | feature set | CV mean | fold std |
+Best validated so far (KFold 5, shuffle, seed 42, 1,241 development rows, RMSE log1p; all PRELIMINARY: selection-fold scores, optimistic by about +0.002–0.003 per audit §7; nothing is frozen):
+
+| rank | id | model | CV mean | note |
 |---|---|---|---|---|
-| E001 | mean baseline | base | 0.3987 | 0.027 |
-| E003 | Ridge a=10 | base | 0.1409 | 0.032 |
-| E004 | XGBoost defaults | base | 0.1487 | 0.019 |
-| E023 | XGBoost defaults | all | 0.1356 | – |
-| E041 | Ridge a=10 + skew | all | 0.1304 | – |
-| E042 | ElasticNet(0.001,0.5) + skew | all | 0.1256 | – |
-| E055 | Ridge a=10 (grid best) + skew | all | 0.13028 | 0.0232 |
-| E056 | **Lasso a=5.62e-4 + skew (best single model registered)** | all | **0.12545** | 0.0235 |
-| E057 | ElasticNet a=1.18e-3, l1=0.5 + skew | all | 0.12555 | 0.0230 |
-| Stage 1 XGBoost | tuned, 25 trials (log: best 0.12307, 2.2 min) | all | 0.12307 | see §7 for registration status |
+| 1 | E061 | equal-weight average Lasso E056 + CatBoost E060 | 0.11807 | Stage 1 bases; within 0.003 of CatBoost alone |
+| 2 | E062 | NNLS blend Lasso + CatBoost (weights learned in-fold) | 0.11902 | |
+| 3 | E063 | NNLS blend of six bases | 0.11943 | no better than CatBoost alone |
+| 4 | **E060** | **CatBoost, Optuna Stage 1 best (best single model)** | **0.11946** | depth 5, lr 0.035, 1700 it |
+| 5 | E058 | XGBoost Stage 1 | 0.12307 | no Stage 2 (gap 0.0036, flat) |
+| 6 | E059 | LightGBM Stage 1 | 0.12442 | Stage 2 approved |
+| 7 | E056 | Lasso alpha 5.6e-4 + skew (best linear) | 0.12545 | fresh-fold (seed 7) check: 0.1282 |
+| 8 | E057 / E055 | ElasticNet 0.12555 / Ridge 0.13028 | | |
+| – | E001 | mean baseline | 0.3987 | |
 
-"all" = `base+areas+baths+ages+quality_interactions+ordinal_quality` (pass the full string as feature_set; `data.py` does not know the alias). E003, E004, E042 reproduce exactly through `python -m houseprices.evaluate --experiment <id>`.
+"all" feature set = `base+areas+baths+ages+quality_interactions+ordinal_quality` (pass the full string; `data.py` has no alias). Reproduced via `evaluate`: E003, E004, E042, E056 (seed 7 variant), finalist probe. Diversity (`experiments/ensemble/diversity_20261113_121446.csv`): residual correlation linear–linear 0.970–0.997, tree–tree 0.946–0.962, linear–tree 0.823–0.862.
 
-Binding rulings this session (details in EXPERIMENT_HISTORY): D9 Id re-attached in `data.py`; D11 feature set "all"; D12 linear models use `preprocessor_kwargs={"skew_log1p": True}`, trees do not; D13 LotFrontage neighbourhood median kept; D14 one-SE registry decisions are provisional; D15 `train_row_filter=keep_all` everywhere (dropping outliers hurts under complete validation folds); D16 linear finalists Lasso E056 / ElasticNet E057, Ridge kept as ensemble base.
+Binding rulings this session: D9 Id re-attached; D11 feature set "all"; D12 skew for linear models only; D13 LotFrontage neighbourhood median; D14 one-SE decisions provisional; D15 keep_all; D16 linear finalists Lasso/ElasticNet; D17 finalist seed 7; D18 test-only data gaps (Ids 2593, 2550, 1877); D19 Stage 2 for CatBoost + LightGBM only, native CatBoost own Stage 1; D20 year clipper upper bound only (opt-in `clip_years`).
 
-## 3. Code written this session (all committed, all tested)
+## 3. Code and documents written this session (all committed)
 
-- `src/houseprices/data.py`: `_with_id` (Id first column of X/X_holdout/X_test). `validation.py`: `score_holdout_once`, `holdout_usage`, `HoldoutAlreadyUsedError`, `HOLDOUT_USAGE_LOG`. `cleaning.py`: `clean_train_test` applies `add_anomaly_flags`. `features.py`: group `anomaly_flags` (all zero in train; test-only anomalies Ids 2593, 2550, 1877). `preprocess.py`: `SkewLog1pTransformer`, `KNNLotFrontageImputer`, kwargs `skew_log1p`, `lotfrontage="knn"`. `models.py`: F11 fix (non-numeric = text). `ensemble.py`: `build_blend_from_specs`, `build_stack_from_specs`, `build_average_from_specs`, `OptimisticScore`.
-- `experiments/models/_common.py`: `run_and_register(..., agent=)`, `set_dry_run` (registration refused in dry-run), `find_registered`. Scripts: `run_baselines.py` (run), `run_outlier_policy.py` (run), `run_linear_family.py` (run), `experiments/tuning/run_optuna_stage1.py` (partially run, §4), `experiments/feature_ablation/run_ablation.py` + `run_lotfrontage.py` + `_ablation_common.py` (run), `experiments/ensemble/run_ensembles.py` (NOT run; dry-run verified).
-- Tests: `tests/test_data.py`, `test_holdout_guard.py` (director), `test_models.py` (B), `test_audit_round2.py` (D), extended `test_features.py`, `test_ensemble.py`.
-- Notebooks: `notebooks/02_feature_engineering.ipynb` + executed copy (0 errors). Drafts: `docs/drafts/STUDY_GUIDE_part3_ensembles.md` (2,266 words; dry-run correlation figures to replace after the real ensemble run), `docs/drafts/STUDY_GUIDE_part1_data_features.md` (incomplete, see §7).
+`src/houseprices/`: `data.py` (`_with_id`), `validation.py` (`score_holdout_once` + `_assert_is_holdout_frame` + `holdout_usage`), `config.py` (`CV_SEED_FINALISTS = 7`), `evaluate.py` (`--seed`), `train.py` (NEW; refuses `--rows all` until holdout scored), `predict.py` (NEW; validated submission, never submits), `cleaning.py` (anomaly flags wired), `features.py` (`anomaly_flags` group), `preprocess.py` (`SkewLog1pTransformer`, `KNNLotFrontageImputer`, `YearRangeClipper`, kwargs `skew_log1p`, `lotfrontage="knn"`, `clip_years`), `models.py` (F11), `ensemble.py` (`*_from_specs` builders, `OptimisticScore`). `experiments/models/_common.py` (`agent=`, `set_dry_run`, `find_registered(seed=)`), runners: baselines, outlier policy, linear family, `tuning/run_optuna_stage1.py`, `feature_ablation/*`, `ensemble/run_ensembles.py` (`--diagnostics-only` fixed), `finalists/run_finalists.py`. Tests: `test_data.py`, `test_holdout_guard.py`, `test_pipeline_end_to_end.py`, `test_models.py`, `test_audit_round2.py`, extended features/ensemble tests. Notebook `02_feature_engineering` (+executed, 0 errors). `README.md` draft (status line says in progress). Drafts in `docs/drafts/`: `STUDY_GUIDE_part1_data_features.md` (5,730 w, complete), `STUDY_GUIDE_part2a_validation.md` (4,159 w, complete), `STUDY_GUIDE_part2b_linear_models.md` (Agent A, state in §7), `STUDY_GUIDE_part3_ensembles.md` (2,266 w; Agent C updating with real diversity numbers, state in §7), `CHATGPT_AUDIT_PACKET_claims.md` (Agent D, state in §7).
 
-## 4. Interrupted at the pause
+## 4. Running / interrupted / pending at the pause
 
-- **C5 Optuna Stage 1** (Agent B): command running at pause: `run_optuna_stage1.py --feature-set base+areas+baths+ages+quality_interactions+ordinal_quality --train-row-filter keep_all` (boosters xgboost, lightgbm, catboost one-hot; 25 trials each; cap 45 min), to be followed by a fourth study `--boosters catboost --catboost-native` (25 trials, cap 25 min). XGBoost finished (25/25, best 0.12307, 2.2 min). State: `experiments/tuning/optuna_stage1.db` (SQLite, gitignored, resumable, skips completed trials), `stage1_<booster>_<fs>.log`, `stage1_<booster>_<fs>_trials.csv`, `stage1_summary.json` (written at the end of a full run). Resume by re-running the same command; the script reuses the study and registers each booster's best once its study is complete. Exact state at the pause: §7.
-- **Audit round 4** (Agent D): COMPLETE and signed off (VALIDATION_AUDIT §7): tuning results admissible; **C8 finalists BLOCKED by F20** (use a fresh seed for RepeatedKFold, ruling D17).
-- **Study guide part 1 draft** (Agent A): COMPLETE (5,290 words, `docs/drafts/STUDY_GUIDE_part1_data_features.md`), awaiting director review/merge.
-- Not started: C6 Stage 2 (director decides from `stage1_summary.json`), C7 ensembles (runner ready), C8 finalists RepeatedKFold 5x3 + freeze + single holdout use, E1 interpretability, F1 `train.py`/`predict.py`/end-to-end test/submission file (not submitted), F2 final audit, D1 documentation.
+- **Optuna** (`experiments/tuning/optuna_stage1.db`, SQLite, gitignored, resumable): xgboost 25/25 COMPLETE (0.12307, registered E058); lightgbm 25/25 (0.12442, E059); catboost one-hot 25/25 (0.11946, E060); **catboost_native: 3 COMPLETE + 1 RUNNING at 12:20, best 0.12411, time-capped at 25 min (started 11:59:19)**. Each native trial takes several minutes. The script registers the study's best when it stops at the cap → a possible E065 "catboost_native best of N trials" with N small; treat it as a time-capped partial result, not a tuned model (Agent B's final word in §7). Stage 2 (CatBoost, LightGBM to 75 trials, D19) NOT started. Resume command (same study names, skips completed trials): `& "<env python>" experiments\tuning\run_optuna_stage1.py --feature-set base+areas+baths+ages+quality_interactions+ordinal_quality --train-row-filter keep_all --boosters catboost --catboost-native --n-trials 25 --time-cap-minutes 25`; Stage 2: same script with `--boosters catboost,lightgbm --n-trials 75 --time-cap-minutes 60` (Agent B to confirm the exact flags; the script's `--help` is authoritative). Tuning time used: 10.8 min + native (≤25 min) of the 3 h cap.
+- **Ensembles**: runner ready; the registering run (`run_ensembles.py --select-best --feature-set <all> --train-row-filter keep_all --budget-minutes 40`) must wait for Stage 2 bases and the director's GO; E061–E064 (Stage 1 bases) are already registered and will be skipped by hash.
+- **Finalists (C8)**: not run. Candidate ids at the pause: E061, E062, E060, E056, E058 (+ Stage 2 bests and new ensembles). Command: `experiments\finalists\run_finalists.py --ids <csv ids>` (seed 7 default).
+- **Holdout**: not scored. Procedure not frozen. `train --rows all`, submission file, interpretability (E1), notebooks 03–05, final docs: pending.
 
-## 5. Open findings (VALIDATION_AUDIT)
+## 5. Open validation concerns
 
-F11 fixed/verified; F12–F15 Info (filter name int vs float; knn silent fallback; registry lacks git commit/library versions; CONSTANT_IN_TRAIN_FLAGS chosen from train); F16 Low memoriser-test blind spot (probe added by D); F17 Low manual registry path (`registry.append` has no CVResult check; `OptimisticScore` mitigates); F18 Info blend weights on same folds; F19 Info passthrough unreachable. Round 4 findings: §7 of the audit file and D's reply in §7 below. Selection-bias caveat: all grid/Optuna selection is on the same 5 folds; finalists need RepeatedKFold 5x3 and the single holdout.
+None blocking. Accepted limitations: F27 (registry append not atomic; single writer by process), F28 (joblib pickles), 219-row holdout cannot rank models closer than about 0.01, anomaly flags constant in train, test Id 2550 irreducible. Standing rule: differences < 0.003 CV RMSE are not wins; finalists on seed 7.
 
 ## 6. Exact next steps (in order)
 
-1. Recreate the team (see RESUME_PROMPT). Verify §1 facts.
-2. Agent B: resume Stage 1 (same command) until all four studies complete; report `stage1_summary.json`; register best per booster. Director rules on Stage 2 (within 0.003 of the best model or still improving; overall tuning cap 3 h, about 2 h 50 min remain).
-3. Director: implement D17 (finalist seed 7: `config.CV_SEED_FINALISTS`, `evaluate --seed`) and F21 hardening (`score_holdout_once` checks that the frame's Ids equal `holdout_ids.json`); Agent D re-verifies. Then D audits the ensemble run output.
-4. Agent C: `run_ensembles.py --select-best --feature-set base+areas+baths+ages+quality_interactions+ordinal_quality --train-row-filter keep_all --budget-minutes 40` (needs registered lasso/elasticnet/ridge/xgboost/lightgbm/catboost on that feature set; give the registry lock to C).
-5. Director: finalists (top 5 incl. best single and best ensemble) under RepeatedKFold 5x3 with seed 7 (D17, not seed 42); freeze; record; ONE call to `validation.score_holdout_once` with the frozen id; `train.py`/`predict.py`; `tests/test_pipeline_end_to_end.py`; submission file in `outputs/submissions/` (not submitted).
-6. Agent B: interpretability (permutation importance, SHAP on the tree finalist, residuals by price decile / GrLivArea) → `outputs/figures/`, `notebooks/03_modeling.ipynb`, `04_ensembles.ipynb`, `05_interpretability.ipynb` (thin).
-7. Documentation: merge `docs/drafts/*` into `docs/STUDY_GUIDE.md`; write README.md, `docs/RESEARCH_REPORT.md`, `docs/CHATGPT_AUDIT_PACKET.md` (D co-writes claims), `docs/EXECUTIVE_SUMMARY.md`; final audit round (F2); final commit.
+1. Recreate the team (RESUME_PROMPT §3); verify §1 facts; check `tasklist` for stale processes; check whether E065 (catboost_native, time-capped) exists and document it as partial.
+2. Agent B (registry lock): resume/finish the catboost_native study only if cheap (each trial several minutes; the director may rule to stop at the capped result), then Stage 2 for catboost and lightgbm to 75 trials (cap 60 min), registering a Stage-2 best per booster only if it beats Stage 1. Report `stage1_summary.json`-style stats.
+3. Agent C (registry lock): `run_ensembles.py --select-best ...` with the final bases; report table with paired SE vs best base; D audits the output.
+4. Director: `run_finalists.py --ids <top 5 incl. best single, best ensemble, best linear>`; rule the finalist; FREEZE (record in EXPERIMENT_HISTORY with id and hash); `train --experiment <id>` (development rows; add `--override '{"preprocessor_kwargs": {"clip_years": true}}'` only for pipelines whose builder accepts preprocessor_kwargs, for ensembles the clip must be inside each base spec); ONE call to `validation.score_holdout_once` with the frozen id; record; then `train --rows all`, `predict`, submission to `outputs/submissions/` (not submitted), check Ids 2593/2550/1877 by hand.
+5. Agent B: interpretability (permutation importance, SHAP on CatBoost finalist, residuals by decile/GrLivArea), figures to `outputs/figures/`, thin notebooks 03–05; study-guide boosting chapter draft (part 2c).
+6. Director: merge drafts into `docs/STUDY_GUIDE.md`; finish README, `RESEARCH_REPORT.md`, `CHATGPT_AUDIT_PACKET.md` (from D's claims draft), `EXECUTIVE_SUMMARY.md`; Agent D final audit round (F2); final commit.
 
-## 7. Agent wrap-up reports at the pause
+## 7. Teammate reports at the pause
 
-(appended below as received)
-
-**Director's observation of Stage 1 state at the cut-off (from the logs; agents' own replies did not arrive before the usage limit):**
-- xgboost: 25/25 trials, best 0.12307, 2.2 min. lightgbm: 25/25 trials, best 0.12442, 1.7 min. catboost (one-hot): RUNNING at the cut-off, 5+ trials done, best-so-far 0.12052 at 11:53 (process may have continued or been interrupted by Agent B; either way the SQLite study holds every completed trial). catboost-native: not started.
-- NOTHING from Stage 1 is registered yet (registry still 57 lines); the script registers each booster's best only when the whole run finishes. Resume with the same command; completed trials are skipped. Then `stage1_summary.json` gives the Stage-2 rule evaluation. All three boosters are within 0.003 of the best model so far (CatBoost 0.1205 provisional best overall), so expect Stage 2 for at least CatBoost.
-- Agent D's round 4 (`docs/VALIDATION_AUDIT.md` §7, `tests/test_audit_round2.py`) and Agent A's draft `docs/drafts/STUDY_GUIDE_part1_data_features.md` were saved in whatever state they reached and are committed; both are marked/must be treated as IN PROGRESS. Notebook 02 was re-executed by Agent A (0 errors at last check); re-verify on resume.
-
-**Agent replies received after the cut-off (all work saved and committed):**
-- validation-auditor: round 4 COMPLETE (not in progress). Verified clean: scoring path, Optuna rebuild/hash, Stage-2 rule, linear grid, registry consistency, holdout guard. Selection bias measured: +0.002 grid optimism, seed-to-seed SD 0.0026; boosters expected +0.002–0.005 (not measured). Findings F20 Medium (finalist repeats share the selection folds; blocks C8), F21 Low (`score_holdout_once` accepts any frame; direct predict not logged; its strict xfail probe in `tests/test_audit_round2.py` is the 1 xfail), F22/F23 Info. Sign-off: tuning admissible; C8 blocked by F20.
-- feature-researcher: `docs/drafts/STUDY_GUIDE_part1_data_features.md` complete (5,290 words, 6 chapters + 10 Q&A). Found: EXPERIMENT_HISTORY had the XGBoost sign wrong for the ordinal_quality removal (fixed by the director); raw `GarageYrBlt` 2207 (test Id 2593) still reaches linear models via base features; test Id 2550 resembles outliers 524/1299 (ruling D18). Corrected the same sentence in notebook 02 and re-executed it (director re-ran the error check: see commit message).
-- ensemble-researcher: nothing unsaved, no process running.
-- model-researcher: NO reply before the pause. Its Stage 1 process was still running CatBoost (10/25 trials at 11:54, best 0.12052); the director let it finish rather than kill it mid-trial. On resume: if the registry has 60 lines and `experiments/tuning/stage1_summary.json` exists, Stage 1 (one-hot) registered the XGBoost/LightGBM/CatBoost bests; if 57, re-run the same command (SQLite skips completed trials). The CatBoost-native study was never started.
+(appended below as received; if a teammate's report is missing, its last known state is in §3/§4)
