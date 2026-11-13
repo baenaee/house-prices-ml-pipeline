@@ -1,0 +1,2 @@
+[11:52:08] catboost: start, 25 trials, soft budget 41.2 min, filter=keep_all, threads=8
+[11:53:39] catboost: trial 4 done (5 complete), last=0.12119, best=0.12052, elapsed=1.5 min

@@ -144,3 +144,47 @@ Round 3 SIGN-OFF: approved, ensemble experiments may run (F16-F19 are non-blocki
 ### 6.3 Status update 2026-11-13
 
 F10 and F11 verified fixed (see section 5.1). E001-E004 are registered and E003/E004 reproduce through `evaluate`; `experiments/holdout_ids.json` exists. All audit probes redirect the registry and holdout paths to temporary directories, so they never write to the real registry.
+
+## 7. Round 4 - outlier-policy, linear-grid and Optuna scripts, holdout guard
+
+Date 2026-11-13. Scripts were read, never run; all probes redirect registry, holdout-usage and holdout-id paths to temporary directories (the real registry stayed at 57 lines during the audit). Probes: `tests/test_audit_round2.py`, round 4 block (16 tests plus 1 strict xfail). Full suite: 191 passed, 1 xfailed.
+
+### 7.1 Findings
+
+| ID | Severity | Location | Finding | Failing example | Suggested fix | Status |
+|---|---|---|---|---|---|---|
+| F20 | Medium (gates the finalist step C8, not the registry) | validation.py `make_cv`, config `CV_N_REPEATS_FINALISTS` | `make_cv(5, 3, 42)` is `RepeatedKFold(random_state=42)` and its FIRST repeat is identical to `KFold(5, shuffle, random_state=42)`, the five folds every configuration was SELECTED on. A "5x3 finalist check" therefore re-uses one third of the selection folds, so it is not an independent bound on selection bias. | `list(make_cv(5,3,42).split(X))[:5] == list(make_cv(5,1,42).split(X))` is True (`test_repeated_kfold_finalist_check_shares_its_first_repeat_with_selection_folds`) | Run the finalist check with a different seed (for example `make_cv(5, 3, 7)`, verified to differ), or report repeats 2-3 separately from repeat 1. | Open |
+| F21 | Low | validation.py `score_holdout_once` | The guard is advisory. It accepts any frame, so a mistaken call with development rows burns the single use and logs it as the holdout evaluation; and nothing prevents scoring `data.X_holdout` directly with `predict` and `rmse_log`, which is not logged. | `score_holdout_once(est, dev.X.iloc[:219], dev.y_log.iloc[:219], "E999")` succeeds | Check that `X_holdout["Id"]` equals the ids in `holdout_ids.json`; keep the final report's rule that only the logged call counts. | Open (strict xfail `test_holdout_guard_rejects_non_holdout_frame`) |
+| F22 | Info | run_optuna_stage1.py | The overall 3 h tuning cap is recorded in `stage1_summary.json` but not enforced by code (only the 45 min stage cap is); the Stage-2 reference is the lowest `cv_mean` of ANY registered experiment, whatever its feature set or row filter, so the gap is conservative only if all runs share the protocol (currently true: seed 42, same folds). With 10 or fewer trials "improving" compares the first and last running best. | n/a | Add the cumulative elapsed time to the summary and have the director check it before Stage 2. | Note |
+| F23 | Info | all three scripts | Every best-of-grid, best-of-trials and best-policy cell is registered with `decision="retain"` automatically. After selection on one set of folds this is provisional. | n/a | Treat as "retain pending finalist check". | Note |
+
+### 7.2 Verified without findings
+
+(a) **Scoring path.** The three scripts contain no reference to the holdout frames, `score_holdout_once`, `load_development_data` or `make_cv`; every grid point, trial and policy cell is scored by `_common.run_cv`, which uses `get_data` (development rows), `make_cv(5, 1, 42)` and the resolved row filter. Probes replace `run_cv` with a spy: the linear grid makes exactly 136 calls (2 x (15 + 13 + 40)), each with `preprocessor_kwargs={"skew_log1p": True}`, a scaler, the requested feature set and filter.
+
+(b) **Optuna kwargs.** For xgboost, lightgbm and catboost, the dict scored by the objective equals the dict stored in the trial's `builder_kwargs`, equals `OPTUNA_SPACES[name](trial)` (plus `extra`, for example `native_categoricals=True`), and the pipeline rebuilt from the JSON round trip has the same repr and the same model `get_params`. For LightGBM, `subsample_freq=1` is in the registered dict and absent from `trial.params`, confirming that rebuilding from `trial.params` would have been wrong. The registry config hash is identical before and after the JSON round trip, so `find_registered` and `evaluate` see the same configuration.
+
+(c) **Stage-2 rule.** Constants are gap 0.003, window 10, cap 3.0 h. A flat study 0.0031 above the reference is not recommended, 0.0029 above is; a study whose running best dropped by more than 1e-4 over the last 10 trials is recommended even when far from the reference; a flat study is not "improving". This matches "within 0.003 of the best model or still improving" (cap enforcement: F22).
+
+(d) **Linear grid.** Only the best Ridge, Lasso and ElasticNet are registered (probe: three records for a 136-point grid, thinned in the probe); each record's `builder_kwargs` contains `scaler` and `preprocessor_kwargs={"skew_log1p": True}`, rebuilds through the builder, and its notes mention the ConvergenceWarning count. The full grid goes to `linear_grid_<feature_set>_<filter>.csv`; warnings are counted per grid point (probe: a warning raised in one call is counted once). Floats survive the JSON round trip exactly.
+
+(e) **Outlier policy script.** Policies are applied through the `train_row_filter` argument of `run_cv` (training rows only); reused cells come from the registry by config hash; dry-run registers nothing.
+
+(f) **Registry integrity (read-only check of the 57 records).** Unique ids, no duplicate config hashes, fold-score count equals splits times repeats, `cv_mean` equals the mean of the fold scores, seed 42 everywhere, `holdout_ids.json` equals the deterministic regeneration, and `holdout_usage.log` does not exist (holdout unused so far).
+
+(g) **Holdout guard (correction 3, R4).** First call scores and logs `{timestamp, frozen_experiment_id, n_holdout, rmse_log, forced=false, n_previous_uses=0}`; a second call raises `HoldoutAlreadyUsedError` and logs nothing; `force=True` scores and logs `forced=true, n_previous_uses=1`; a non-finite prediction raises before logging, so a failed call does not consume the single use. The holdout (219 rows) is disjoint from the development Ids. Residual risk is F21.
+
+### 7.3 Selection bias (for the report)
+
+Measured, not assumed. I re-scored a 15-point Ridge alpha grid (robust scaler plus `skew_log1p`, base features) on the selection folds (seed 42) and on five other partitions (seeds 1-5). The selected alpha 10 scored 0.1319 on the selection folds and 0.1340 on average on the five fresh partitions: optimism +0.0021. The seed-to-seed standard deviation of the CV mean at a fixed configuration is 0.0026. The pure selection effect over 15 neighbouring alphas is about zero, because the curve is smooth and flat near its minimum (the minimum of the seed-averaged curve equals the average of per-seed minima); the optimism comes from the particular fold draw, which is also why a model chosen from a 136-point grid can look 0.002 better than it is.
+
+Reading for the report: a registered best score has an optimism of roughly one seed standard deviation, about 0.002 to 0.003 for linear models. Boosters with 25 TPE trials over 8 interacting parameters have a rougher response surface, so their optimism is probably at least as large (not measured; expect 0.002 to 0.005). Consequences:
+
+- Differences between tuned models below about 0.003 are within selection noise and must not be reported as wins.
+- Bounds: (1) a finalist check on FRESH folds (F20: a different seed, or repeats 2-3 only) gives an estimate that is unbiased for the chosen configuration; (2) the single holdout gives the final unbiased number but with only 219 rows its sampling error is large (order 0.01 in RMSE), so it can confirm the level and rule out gross overfitting, not rank close models.
+
+### 7.4 Sign-off
+
+Tuning results admissible to the registry: YES. The outlier-policy, linear-grid and Optuna Stage 1 results may be registered and used for Stage-2 decisions, with the scores described as selection-optimistic (7.3).
+
+Finalist step C8 (RepeatedKFold 5x3): BLOCKED by F20 until the check uses folds that differ from the selection folds.

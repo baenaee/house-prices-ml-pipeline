@@ -17,13 +17,13 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | A5 | Audit of A1–A4 (no SalePrice use, no fitted statistics, no train/test concatenation) | validation-auditor | A2, A3 | done | round 2 signed off 2026-11-13 (VALIDATION_AUDIT §5): F9 High fixed, F10/F11 Low open for B; skew/KNN transformers and ensemble.py in round 2b/3 |
 | B1 | `preprocess.py` + `features.py` base feature set; first pipelines | feature-researcher | A1 | done | used by E001–E004; `tests/test_models.py` exercises every builder |
 | B2 | Baselines E001–E004 (mean, OLS numeric, Ridge one-hot, default XGB) | model-researcher | B1 | done | run 2026-11-13: 0.3987 / 0.1599 / 0.1409 / 0.1487; E003 and E004 reproduce via evaluate; holdout_ids.json created and committed |
-| B3 | Metric/fold/holdout verification, per-fold refit check | validation-auditor | B2 | in-progress | round 1 done: F1–F3 found and fixed by director; `tests/test_validation.py` green |
+| B3 | Metric/fold/holdout verification, per-fold refit check | validation-auditor | B2 | done | rounds 1–3 signed off; per-fold refit verified (§5); holdout guard `score_holdout_once` added by director, in round 4 scope |
 | C0 | `ensemble.py` (NestedStackingRegressor, BlendingRegressor) + synthetic tests | ensemble-researcher | P0.6 | done | audit round 3 approved (VALIDATION_AUDIT §6), Low findings F16–F19 |
 | C1 | Feature ablations (groups on/off, 3 models) | feature-researcher | B2 | done | E005–E042, 2026-11-13; ruling D11 (feature set "all") and D12 (skew for linear models); E042 reproduces |
 | C2 | Outlier policy CV (train-fold-only filters) | model-researcher | B2 | done | E049–E054; keep_all best for all 3 models; ruling D15 |
 | C3 | LotFrontage imputation comparison (in-fold) | feature-researcher | B2 | done | E043–E048; no method differs beyond noise; ruling D13 keeps neighbourhood median |
 | C4 | Linear family grids (Ridge/Lasso/ElasticNet, scalers) | model-researcher | C1 | done | E055 Ridge 0.1303, E056 Lasso 0.1255, E057 ElasticNet 0.1256; scaler irrelevant; D16 |
-| C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | in-progress | queued after C4; cap 45 min + 25 min CatBoost-native; overall tuning cap 3 h |
+| C5 | Boosting Stage 1: 25 Optuna trials each XGB/LGBM/CatBoost | model-researcher | C1 | in-progress (PAUSED 2026-11-13) | XGBoost study complete (25/25, best 0.12307, 2.2 min); LightGBM/CatBoost/CatBoost-native pending; resume same command, SQLite study skips done trials; see SESSION_CHECKPOINT §4/§7 |
 | C6 | Boosting Stage 2 (conditional expansion) | model-researcher | C5 | todo | director approves scope |
 | C7 | Blending + nested stacking + diversity analysis | ensemble-researcher | C4, C5 | in-progress | runner being written (reads best base ids from the registry); real run after C5 |
 | C8 | Finalists RepeatedKFold 5x3; freeze procedure; single holdout evaluation | director | C7 | todo | |
@@ -33,3 +33,5 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | todo | mandatory deliverables |
 
 | R1 | Recovery audit after 2026-11-13 Cloudflare 403 failure: originals hashed, dirty files reviewed, tests run | director | – | done | see EXPERIMENT_HISTORY 2026-11-13 entry; 96 passed / 12 stale agent tests failing at recovery |
+| R2 | Audit round 4 (tuning/grid scripts, holdout guard, selection bias) | validation-auditor | C4, C5 | in-progress (PAUSED) | VALIDATION_AUDIT §7 marked in progress, not signed off |
+| R3 | Study guide drafts (part 1 data/features by A; part 3 ensembles by C) | feature-researcher, ensemble-researcher | C1, C0 | in-progress | part 3 done (2,266 words, committed); part 1 incomplete at pause |

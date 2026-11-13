@@ -1,3 +1,5 @@
+DRAFT, COMPLETE as of 2026-11-13 — sections done: Chapters 1-6 and the 10 self-check questions with answers; sections remaining: none (director review and merge only).
+
 # Study guide, part 1: the data, the cleaning and the features
 
 Draft by Agent A (feature-researcher) for the director to merge into `docs/STUDY_GUIDE.md`. Audience: a third-year data-science student who must be able to defend every decision in an interview. Numbers come from `docs/AUDIT_2026-11-11.md`, `docs/EXPERIMENT_HISTORY.md` and the experiment registry (experiment ids are written E0xx). Cross-validated errors are RMSE on log1p(SalePrice), five shuffled folds, seed 42, lower is better.

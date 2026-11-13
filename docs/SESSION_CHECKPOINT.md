@@ -1,79 +1,67 @@
-# Session checkpoint — 2026-11-11 (usage-limit stop)
+# Session checkpoint — 2026-11-13 (emergency pause, usage limit)
 
-Purpose: let the next Claude session continue the research without restarting it. Read this file, then `docs/TASK_BOARD.md`, `docs/EXPERIMENT_HISTORY.md`, `docs/VALIDATION_AUDIT.md`, and the approved plan at `C:\Users\Enrique Baena\.claude\plans\pasted-content-id-b077-create-an-smooth-charm.md`.
+Purpose: let the next Claude session continue the research without restarting it. Read this file, then `docs/TASK_BOARD.md`, `docs/EXPERIMENT_HISTORY.md` (decisions D1–D16 are binding), `docs/VALIDATION_AUDIT.md`, the approved plan at `C:\Users\Enrique Baena\.claude\plans\pasted-content-id-b077-create-an-smooth-charm.md`, and paste `docs/RESUME_PROMPT.md` to start. The previous checkpoint (2026-11-11) is superseded; its content is folded in below.
 
-## State of the repository
+## 1. Repository state
 
-- Git (installed this session at `C:\Program Files\Git\cmd\git.exe`; not on PATH in Claude's shell, call it by full path). Commits: `fedba71` original checkpoint → `00ae167` skeleton → `cff763b` environment → Phase A WIP commit (see `git log`).
-- Original files are byte-identical to the checkpoint (verified by SHA-256 after all agent work): `HousePricing.ipynb` 1BB32B57…, `house_prices_training_profile.html` 2A97F907… (git-ignored, preserved in the ZIP), CSVs unchanged.
-- Full backup: `C:\Users\Enrique Baena\Desktop\HousePricingKaglle_original_2026-11-11.zip` (29 entries, hash-verified).
-- Environment: conda env `houseprices`, python `C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe` (3.12; pandas pinned 2.3.3, scikit-learn 1.9.1, xgboost 3.4.1, lightgbm 4.7.0, catboost 1.2.10, optuna 5.0.0, shap 0.54.1). Package installed editable. Jupyter kernel `houseprices` registered. `requirements.txt` = pip freeze; `environment.yml` wraps it. Plain `python` is NOT on PATH (Microsoft Store alias).
-- Test suite: `& "<env python>" -m pytest tests -q` → all passing (62 passed, 3 xfail) at checkpoint time.
+- Git: `C:\Program Files\Git\cmd\git.exe` (not on PATH). Commit sequence this session: `651fb01` recovery + audit round 2 → `582bf86` baselines + holdout → `4b9ff5d` audit addendum → `0898b38` ablations → `235d730` holdout guard → `da61efd` outlier policy → `de19412` notebook 02 → `87de393` ensemble runner → `d337e09` study-guide draft 3 → `37cc669` linear grids → FINAL checkpoint commit (see `git log -1`). Working tree clean after the final commit.
+- Originals byte-identical to `fedba71` (SHA-256 verified 2026-11-13: `HousePricing.ipynb` 1BB32B57…, `train.csv` 1E18ADDF…, `test.csv` 8FDD3D82…). Backup ZIP: `C:\Users\Enrique Baena\Desktop\HousePricingKaglle_original_2026-11-11.zip`.
+- Environment: conda env `houseprices`, python `C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe` (3.12; pandas 2.3.3 pinned, scikit-learn 1.9.1, xgboost 3.4.1, lightgbm 4.7.0, catboost 1.2.10, optuna 5.0.0, shap 0.54.1). Plain `python` is NOT on PATH. `requirements.txt`/`environment.yml` unchanged.
+- Tests: `& "<env python>" -m pytest tests` (pyproject sets `-q`; passing `-q` again hides the summary line) → **191 passed, 1 xfailed** at pause time (the xfail is Agent D's strict pin of an open finding in round 4, see §5).
+- Known tooling quirk: writing files through Bash heredocs collapses doubled backslashes; build escapes with `chr()` or use the Edit/Write tools.
+- Separate, NOT fixed on purpose: `node: command not found` hook error comes from user-level `~/.claude/settings.json` (pixel-agents hooks); unrelated to this project.
 
-## What is done
+## 2. Completed phases and results
 
-Phase 0 complete. Phase A code complete and green, pending Agent D's audit sign-off:
-- `src/houseprices/cleaning.py` — the 17 rules as pure functions, identical for train/test, with the RECONSTRUCTED C01 (labelled as such) and B04 as a condition (all basement fields missing), not `Id == 2121`.
-- `tests/test_cleaning.py` — every notebook verification count asserted (see `docs/AUDIT_2026-11-11.md` table), schema/Id/SalePrice integrity, idempotency.
-- `src/houseprices/features.py`, `src/houseprices/preprocess.py`, `tests/test_features.py` — feature groups and fold-safe preprocessor (GroupMedianImputer for LotFrontage).
-- `notebooks/01_cleaning_repaired.ipynb` + `01_cleaning_repaired.executed.ipynb` — runs top-to-bottom from `notebooks/` (80 cells, execution counts 1–70, zero errors); C01 verification output 1/12 entries, 1/9 houses; final check 0 categorical NaN, Ids and SalePrice preserved. Original notebook untouched.
-- Director modules: `config.py`, `validation.py` (log1p target, rmse_log, seeded folds, single-use holdout, training-fold-only row filters), `registry.py` (JSONL experiment registry), `data.py` (single data entry point), `evaluate.py` (`python -m houseprices.evaluate --experiment <id>`).
-- `docs/VALIDATION_AUDIT.md` round 1 by Agent D; `tests/test_validation.py`.
+Phase 0, Phase A (audited, signed off §5 of VALIDATION_AUDIT), Phase B baselines, C1 ablations, C2 outlier policy, C3 LotFrontage, C4 linear grids are DONE. Registry: `experiments/registry.jsonl` has **57 experiments (E001–E057)** plus whatever Stage 1 registered after E057 (see §4 and §7). Holdout: `experiments/holdout_ids.json` (219 ids, seed 42, decile-stratified) created 2026-11-13 11:36 and committed; `experiments/holdout_usage.log` does NOT exist (holdout never scored).
 
-## In progress at the moment of the stop (see agent reports section below once filled)
+Best validated scores so far (KFold 5, shuffle, seed 42, development set 1,241 rows, RMSE on log1p):
 
-- Agent B (`model-researcher`): writing `src/houseprices/models.py` and `experiments/models/run_baselines.py`. NO experiment has been run; the registry `experiments/registry.jsonl` does not exist yet (E001 will be the first id).
-- Agent C (`ensemble-researcher`): writing `src/houseprices/ensemble.py` (NestedStackingRegressor, BlendingRegressor) and `tests/test_ensemble.py` on synthetic data. No real-data runs.
-- Agent D (`validation-auditor`): round 1 on validation/config/registry done; round 2 (audit of cleaning/features/preprocess) not yet requested.
-- Agent A (`feature-researcher`): A1–A3 done; A4 (anomaly flags/ages) and B1 refinements may be partially done — check `git diff` and the agent report below.
+| id | model | feature set | CV mean | fold std |
+|---|---|---|---|---|
+| E001 | mean baseline | base | 0.3987 | 0.027 |
+| E003 | Ridge a=10 | base | 0.1409 | 0.032 |
+| E004 | XGBoost defaults | base | 0.1487 | 0.019 |
+| E023 | XGBoost defaults | all | 0.1356 | – |
+| E041 | Ridge a=10 + skew | all | 0.1304 | – |
+| E042 | ElasticNet(0.001,0.5) + skew | all | 0.1256 | – |
+| E055 | Ridge a=10 (grid best) + skew | all | 0.13028 | 0.0232 |
+| E056 | **Lasso a=5.62e-4 + skew (best single model registered)** | all | **0.12545** | 0.0235 |
+| E057 | ElasticNet a=1.18e-3, l1=0.5 + skew | all | 0.12555 | 0.0230 |
+| Stage 1 XGBoost | tuned, 25 trials (log: best 0.12307, 2.2 min) | all | 0.12307 | see §7 for registration status |
 
-## Exact next steps (in order)
+"all" = `base+areas+baths+ages+quality_interactions+ordinal_quality` (pass the full string as feature_set; `data.py` does not know the alias). E003, E004, E042 reproduce exactly through `python -m houseprices.evaluate --experiment <id>`.
 
-1. Re-create teammates if the session is new (names: feature-researcher, model-researcher, ensemble-researcher, validation-auditor; Sonnet; prompts summarised in the plan file and TASK_BOARD). Give each `docs/SESSION_CHECKPOINT.md` to read first.
-2. Agent D round 2: audit `cleaning.py` (no SalePrice use, no fitted statistics, train/test identical, B04 condition, C01 labelled reconstruction), `features.py`, `preprocess.py` (GroupMedianImputer fit-only-on-fold). Sign off `docs/VALIDATION_AUDIT.md` §Phase A.
-3. Confirm `models.py` imports and builders smoke-test on synthetic data; then run `experiments/models/run_baselines.py` → E001–E004 (mean, OLS numeric, Ridge one-hot, default XGBoost) on feature_set "base". Confirm `python -m houseprices.evaluate --experiment E003` reproduces.
-4. Feature ablations (Agent A), outlier-policy CV (Agent B, training-fold-only filters), LotFrontage imputation comparison, linear-family grids.
-5. Boosting Stage 1: 25 Optuna trials each (XGB, LGBM, CatBoost), cap 45 min; Stage 2 only if justified, overall tuning cap 3 h.
-6. Ensembles via `ensemble.py` nested stacking / blending (Agent C), diversity analysis.
-7. Finalists RepeatedKFold 5x3; freeze; single holdout evaluation; `train.py`/`predict.py`; end-to-end test; submission file (NOT submitted).
-8. Documentation deliverables (README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY).
+Binding rulings this session (details in EXPERIMENT_HISTORY): D9 Id re-attached in `data.py`; D11 feature set "all"; D12 linear models use `preprocessor_kwargs={"skew_log1p": True}`, trees do not; D13 LotFrontage neighbourhood median kept; D14 one-SE registry decisions are provisional; D15 `train_row_filter=keep_all` everywhere (dropping outliers hurts under complete validation folds); D16 linear finalists Lasso E056 / ElasticNet E057, Ridge kept as ensemble base.
 
-## How to avoid duplicating work
+## 3. Code written this session (all committed, all tested)
 
-- The registry is append-only; before running an experiment, check `experiments/registry_summary.csv` for an identical `config_hash`.
-- Holdout ids are fixed in `experiments/holdout_ids.json` once created; never regenerate with a different seed.
-- Do not regenerate `house_prices_training_profile.html`.
+- `src/houseprices/data.py`: `_with_id` (Id first column of X/X_holdout/X_test). `validation.py`: `score_holdout_once`, `holdout_usage`, `HoldoutAlreadyUsedError`, `HOLDOUT_USAGE_LOG`. `cleaning.py`: `clean_train_test` applies `add_anomaly_flags`. `features.py`: group `anomaly_flags` (all zero in train; test-only anomalies Ids 2593, 2550, 1877). `preprocess.py`: `SkewLog1pTransformer`, `KNNLotFrontageImputer`, kwargs `skew_log1p`, `lotfrontage="knn"`. `models.py`: F11 fix (non-numeric = text). `ensemble.py`: `build_blend_from_specs`, `build_stack_from_specs`, `build_average_from_specs`, `OptimisticScore`.
+- `experiments/models/_common.py`: `run_and_register(..., agent=)`, `set_dry_run` (registration refused in dry-run), `find_registered`. Scripts: `run_baselines.py` (run), `run_outlier_policy.py` (run), `run_linear_family.py` (run), `experiments/tuning/run_optuna_stage1.py` (partially run, §4), `experiments/feature_ablation/run_ablation.py` + `run_lotfrontage.py` + `_ablation_common.py` (run), `experiments/ensemble/run_ensembles.py` (NOT run; dry-run verified).
+- Tests: `tests/test_data.py`, `test_holdout_guard.py` (director), `test_models.py` (B), `test_audit_round2.py` (D), extended `test_features.py`, `test_ensemble.py`.
+- Notebooks: `notebooks/02_feature_engineering.ipynb` + executed copy (0 errors). Drafts: `docs/drafts/STUDY_GUIDE_part3_ensembles.md` (2,266 words; dry-run correlation figures to replace after the real ensemble run), `docs/drafts/STUDY_GUIDE_part1_data_features.md` (incomplete, see §7).
 
-## Standing limits
+## 4. Interrupted at the pause
 
-No Kaggle submissions; no TabPFN; no destructive change to original files; no paid services; tuning cap 3 h CPU; approval needed before anything outside the approved plan.
+- **C5 Optuna Stage 1** (Agent B): command running at pause: `run_optuna_stage1.py --feature-set base+areas+baths+ages+quality_interactions+ordinal_quality --train-row-filter keep_all` (boosters xgboost, lightgbm, catboost one-hot; 25 trials each; cap 45 min), to be followed by a fourth study `--boosters catboost --catboost-native` (25 trials, cap 25 min). XGBoost finished (25/25, best 0.12307, 2.2 min). State: `experiments/tuning/optuna_stage1.db` (SQLite, gitignored, resumable, skips completed trials), `stage1_<booster>_<fs>.log`, `stage1_<booster>_<fs>_trials.csv`, `stage1_summary.json` (written at the end of a full run). Resume by re-running the same command; the script reuses the study and registers each booster's best once its study is complete. Exact state at the pause: §7.
+- **Audit round 4** (Agent D): tuning/grid scripts + holdout guard; IN PROGRESS, not signed off (VALIDATION_AUDIT §7).
+- **Study guide part 1 draft** (Agent A): incomplete (§7).
+- Not started: C6 Stage 2 (director decides from `stage1_summary.json`), C7 ensembles (runner ready), C8 finalists RepeatedKFold 5x3 + freeze + single holdout use, E1 interpretability, F1 `train.py`/`predict.py`/end-to-end test/submission file (not submitted), F2 final audit, D1 documentation.
 
-## Agent wrap-up reports (received 2026-11-11, all work saved and committed)
+## 5. Open findings (VALIDATION_AUDIT)
 
-**Agent A, feature-researcher — complete, nothing in progress.**
-- `cleaning.py`: 17 rules, `clean`, `clean_train_test`, `load_raw`, `basement_fully_unrecorded`, `add_anomaly_flags`. `features.py`: `FEATURE_SETS` with six groups (base, areas, baths, ages, quality_interactions, ordinal_quality) and `build_features`. `preprocess.py`: `GroupMedianImputer`, `split_columns` (any non-numeric column is categorical, pandas 2/3 safe), `make_preprocessor(X_sample, ...)`.
-- Tests: 30 cleaning + 13 features = 43 passed. All 17 counts match; deferred NaN match; B04 selects only Id 2121; cleaning idempotent. Repaired notebook executed: 80 cells, 0 errors.
-- Deviations from spec (accepted by the director): `make_preprocessor` takes `X_sample` (a DataFrame) rather than a column list; `ordinal_quality` adds `<col>_ord` columns and keeps the text columns; anomaly flags are excluded from "base".
-- Director decisions on A's questions: anomaly flags MAY be tested as an extra feature group ("anomaly_flags") in the ablation, never in "base"; an ablation runner IS wanted at `experiments/feature_ablation/run_ablation.py` (Agent A writes it against `validation.cross_validate`, using Agent B's `build_ridge`, `build_elasticnet`, `build_xgboost` builders).
+F11 fixed/verified; F12–F15 Info (filter name int vs float; knn silent fallback; registry lacks git commit/library versions; CONSTANT_IN_TRAIN_FLAGS chosen from train); F16 Low memoriser-test blind spot (probe added by D); F17 Low manual registry path (`registry.append` has no CVResult check; `OptimisticScore` mitigates); F18 Info blend weights on same folds; F19 Info passthrough unreachable. Round 4 findings: §7 of the audit file and D's reply in §7 below. Selection-bias caveat: all grid/Optuna selection is on the same 5 folds; finalists need RepeatedKFold 5x3 and the single holdout.
 
-**Agent B, model-researcher — code complete, NOTHING RUN.**
-- `models.py`: builders mean, OLS numeric, ridge, lasso, elasticnet, xgboost, lightgbm, catboost (`native_categoricals` kwarg); `OPTUNA_SPACES`; `BUILDERS`; helpers `LazyPreprocessor` (builds the preprocessor from the training fold's columns inside fit; reads no values), `NumericMedianImputer`, `CatBoostNative`. Linear builders accept `scaler="robust"|"standard"`. Tree builders default to `scale=False`. No early stopping; `n_estimators` is tuned.
-- `experiments/models/_common.py` (`run_and_register`) and `run_baselines.py` (E001–E004; refuses to run if ids exist). Smoke-tested on synthetic data only.
-- Tuner note: call `OPTUNA_SPACES[name](trial)` to get params; do not rebuild from `trial.params` (LightGBM space fixes `subsample_freq=1` outside the trial).
-- Resume: after D's round-2 sign-off, `& "<env python>" experiments\models\run_baselines.py`, then `python -m houseprices.evaluate --experiment E003`.
+## 6. Exact next steps (in order)
 
-**Agent C, ensemble-researcher — C0/C1 complete, C2 not started.**
-- `ensemble.py`: `NestedStackingRegressor`, `BlendingRegressor` (weights learned inside fit when `weights=None`), `fit_blend_weights` (NNLS / SLSQP), `inner_oof_matrix`, `prediction_correlation`, `residual_correlation`, `diversity_report`, `build_blend`, `build_stack`, plus labelled optimistic diagnostics `optimistic_oof_stack_score`, `in_sample_stack_score`. Nesting is inside `fit()`, so `validation.cross_validate` remains the single outer protocol. 12 tests passed, including the memoriser leak test.
-- Director decisions on C's questions: Stage 1 uses `passthrough=False` only (no numeric-matrix plumbing); Ridge meta-learner only; nested cost accepted (minutes per stack).
-- Resume: needs the registry ids of the best Ridge/Lasso/ElasticNet/XGBoost/LightGBM/CatBoost from Agent B before writing `experiments/ensemble/run_ensembles.py`.
+1. Recreate the team (see RESUME_PROMPT). Verify §1 facts.
+2. Agent B: resume Stage 1 (same command) until all four studies complete; report `stage1_summary.json`; register best per booster. Director rules on Stage 2 (within 0.003 of the best model or still improving; overall tuning cap 3 h, about 2 h 50 min remain).
+3. Agent D: finish round 4 and sign off tuning admissibility; then audit `run_ensembles.py` output when it runs.
+4. Agent C: `run_ensembles.py --select-best --feature-set base+areas+baths+ages+quality_interactions+ordinal_quality --train-row-filter keep_all --budget-minutes 40` (needs registered lasso/elasticnet/ridge/xgboost/lightgbm/catboost on that feature set; give the registry lock to C).
+5. Director: finalists (top 5 incl. best single and best ensemble) under `evaluate --repeats 3` (RepeatedKFold 5x3); freeze; record; ONE call to `validation.score_holdout_once` with the frozen id; `train.py`/`predict.py`; `tests/test_pipeline_end_to_end.py`; submission file in `outputs/submissions/` (not submitted).
+6. Agent B: interpretability (permutation importance, SHAP on the tree finalist, residuals by price decile / GrLivArea) → `outputs/figures/`, `notebooks/03_modeling.ipynb`, `04_ensembles.ipynb`, `05_interpretability.ipynb` (thin).
+7. Documentation: merge `docs/drafts/*` into `docs/STUDY_GUIDE.md`; write README.md, `docs/RESEARCH_REPORT.md`, `docs/CHATGPT_AUDIT_PACKET.md` (D co-writes claims), `docs/EXECUTIVE_SUMMARY.md`; final audit round (F2); final commit.
 
-**Agent D, validation-auditor — round 1 complete.**
-- F1–F3 (medium/low) in `validation.py`: FIXED by the director; tests converted from strict xfail to ordinary tests (77 passed).
-- F4 (low): holdout file trusted without validation → FIXED (ids checked against the data, duplicates rejected).
-- F5 (low): `config.DICTIONARY_TO_DATA_VALUES["Exterior2nd"]` key misspelled `CmentBd` → FIXED to `CemntBd` (dictionary) → `CmentBd` (data).
-- Q4 (noted): `drop_large_living_area(4000)` also removes Ids 692 and 1183 (legitimate expensive houses); it is a deliberately different policy from `drop_candidate_outliers`, both are evaluated under CV.
-- Round 2 (cleaning/features/preprocess audit) NOT yet requested; must precede the baseline runs.
+## 7. Agent wrap-up reports at the pause
 
-## Decisions pending the user (none blocking)
-
-None. All approvals needed for the next steps were granted in the plan. The next session should begin with Agent D's round 2, then E001–E004.
+(appended below as received)

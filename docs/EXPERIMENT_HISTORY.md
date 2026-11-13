@@ -151,3 +151,7 @@ Interpretation (director):
 | # | Decision | Alternatives considered | Ruling and evidence |
 |---|---|---|---|
 | D16 | Linear finalists are Lasso E056 and ElasticNet E057; Ridge E055 is kept only as an ensemble base candidate | tune Ridge further; drop Ridge | Ridge is 0.005 worse in every fold; its alpha curve is flat, so more tuning cannot close the gap. It remains a cheap, differently regularised base for the blending/stacking diversity analysis. |
+
+### 2026-11-13 — C5 Optuna Stage 1 (PAUSED mid-run, usage limit)
+
+Agent B started `experiments/tuning/run_optuna_stage1.py` on feature set "all", keep_all, one-hot inputs, TPESampler(seed 42), 25 trials per booster, 8 threads. The session was paused by the user while the studies were running. XGBoost completed: 25/25 trials in 2.2 min, best CV 0.12307 (better than Lasso E056 0.12545 by 0.0024, within the 0.003 Stage-2 window). The log shows best-so-far unchanged from trial 4 onward, so XGBoost does not qualify as "still improving". LightGBM, CatBoost (one-hot) and CatBoost-native state at the pause: see SESSION_CHECKPOINT §7. The Optuna SQLite study is resumable; no partial result was registered unless noted there. Stage-2 ruling deferred to the next session once `stage1_summary.json` exists.

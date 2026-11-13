@@ -802,3 +802,201 @@ def test_stack_registers_and_reproduces_through_evaluate(tmp_path, tmp_holdout, 
                             builder="houseprices.ensemble:build_stack", builder_kwargs=kw,
                             interpret=lambda r: ("ok", "retain"))
     assert evaluate.run_registered("E904", verbose=False)["reproduces_registered_scores"] is True
+
+
+# ---------------------------------------------------------------------------
+# Round 4: tuning / grid / outlier scripts and the holdout guard
+# ---------------------------------------------------------------------------
+
+import sys as _sys  # noqa: E402
+import warnings as _warnings  # noqa: E402
+
+
+def _import_script(subdir: str, name: str):
+    d = str(config.PROJECT_ROOT / "experiments" / subdir)
+    if d not in _sys.path:
+        _sys.path.insert(0, d)
+    _sys.path.insert(0, str(config.PROJECT_ROOT / "experiments" / "models"))
+    return importlib.import_module(name)
+
+
+def test_round4_scripts_never_reference_holdout_or_bypass_run_cv():
+    for sub, name in (("models", "run_outlier_policy.py"), ("models", "run_linear_family.py"),
+                      ("tuning", "run_optuna_stage1.py")):
+        src = (config.PROJECT_ROOT / "experiments" / sub / name).read_text(encoding="utf-8")
+        for bad in ("X_holdout", "y_holdout", "score_holdout_once", "holdout_ids", "split_development_holdout",
+                    "load_development_data", "validation.cross_validate", "make_cv"):
+            assert bad not in src, (name, bad)
+        assert "_common.run_cv" in src
+
+
+def _stub_cv(*a, **k):
+    return validation.CVResult([0.1] * 5, np.array([]), 0.0)
+
+
+@pytest.mark.parametrize("name", ["xgboost", "lightgbm", "catboost"])
+def test_optuna_registered_kwargs_rebuild_identical_pipeline(name):
+    optuna = pytest.importorskip("optuna")
+    mod = _import_script("tuning", "run_optuna_stage1")
+    seen = {}
+
+    def fake_run_cv(builder, kwargs, fs, flt):
+        seen.update(builder=builder, kwargs=kwargs, fs=fs, flt=flt)
+        return _stub_cv()
+
+    mp = pytest.MonkeyPatch()
+    mp.setattr(mod._common, "run_cv", fake_run_cv)
+    try:
+        study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(mod.make_objective(name, {}, "base", "keep_all", False), n_trials=1)
+    finally:
+        mp.undo()
+    trial = study.trials[0]
+    assert seen["fs"] == "base" and seen["flt"] == "keep_all" and seen["builder"] == mod.BUILDERS[name]
+    recorded = json.loads(trial.user_attrs["builder_kwargs"])
+    assert recorded == seen["kwargs"]                       # registered dict == dict that was scored
+    # the space output equals the recorded dict (nothing rebuilt from trial.params)
+    space = {}
+    probe = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=42))
+    probe.optimize(lambda t: (space.update(models.OPTUNA_SPACES[name](t)), 0.0)[1], n_trials=1)
+    assert space == recorded
+    if name == "lightgbm":
+        assert recorded["subsample_freq"] == 1 and "subsample_freq" not in trial.params
+    builder = data.resolve_callable(mod.BUILDERS[name])
+    direct, rebuilt = builder(**seen["kwargs"]), builder(**json.loads(json.dumps(recorded)))
+    assert repr(direct) == repr(rebuilt)
+    assert repr(direct.named_steps["model"].get_params()) == repr(rebuilt.named_steps["model"].get_params())
+    from houseprices import registry as _reg
+
+    def h(kw):
+        return _reg.Experiment(id="", agent="a", title="", hypothesis="", rationale="", implementation="",
+                               evaluation="", builder=mod.BUILDERS[name], builder_kwargs=kw).config_hash
+
+    assert h(recorded) == h(json.loads(json.dumps(recorded)))
+
+
+def test_optuna_catboost_native_extra_is_in_registered_kwargs():
+    optuna = pytest.importorskip("optuna")
+    mod = _import_script("tuning", "run_optuna_stage1")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(mod._common, "run_cv", _stub_cv)
+    try:
+        study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=1))
+        study.optimize(mod.make_objective("catboost", {"native_categoricals": True}, "base", "keep_all", False),
+                       n_trials=1)
+    finally:
+        mp.undo()
+    assert json.loads(study.trials[0].user_attrs["builder_kwargs"])["native_categoricals"] is True
+
+
+def test_stage2_rule_matches_director_rule():
+    mod = _import_script("tuning", "run_optuna_stage1")
+    flat = [0.14] * 25
+    assert mod.stage2_rule(flat, reference=0.1369)["stage2_recommended"] is False   # gap 0.0031 > 0.003, flat
+    assert mod.stage2_rule(flat, reference=0.1371)["stage2_recommended"] is True    # gap 0.0029 <= 0.003
+    improving = [0.20] * 14 + list(np.linspace(0.19, 0.15, 11))
+    r = mod.stage2_rule(improving, reference=0.10)
+    assert r["improving_last_10"] and r["stage2_recommended"] and not r["within_gap"]
+    early = [0.15] * 25                                                              # nothing new in the last window
+    assert mod.stage2_rule(early, reference=0.10)["improving_last_10"] is False
+    assert (mod.STAGE2_GAP, mod.STAGE2_WINDOW, mod.TUNING_CAP_HOURS) == (0.003, 10, 3.0)
+
+
+def test_linear_grid_scores_only_through_run_cv_with_skew_and_counts_warnings():
+    from sklearn.exceptions import ConvergenceWarning
+    mod = _import_script("models", "run_linear_family")
+    calls = []
+
+    def fake_run_cv(builder, kwargs, fs, flt):
+        calls.append((builder, dict(kwargs), fs, flt))
+        if len(calls) == 3:
+            _warnings.warn("x", ConvergenceWarning)
+        return validation.CVResult([0.1, 0.11, 0.12, 0.13, 0.14], np.array([]), 0.0)
+
+    mp = pytest.MonkeyPatch()
+    mp.setattr(mod._common, "run_cv", fake_run_cv)
+    try:
+        grid = mod.run_grid("base", "keep_all")
+    finally:
+        mp.undo()
+    assert len(grid) == len(calls) == 2 * (15 + 13 + 40) == 136
+    assert all(c[1]["preprocessor_kwargs"] == {"skew_log1p": True} for c in calls)
+    assert all(c[1]["scaler"] in ("robust", "standard") and c[2] == "base" and c[3] == "keep_all" for c in calls)
+    assert int(grid["convergence_warnings"].sum()) == 1
+
+
+def test_linear_best_registers_complete_kwargs_and_only_three_experiments(tmp_path, tmp_holdout, monkeypatch):
+    mod = _import_script("models", "run_linear_family")
+    monkeypatch.setattr(config, "EXPERIMENTS_DIR", tmp_path)
+    monkeypatch.setattr(config, "REGISTRY_PATH", tmp_path / "registry.jsonl")
+    rng = np.random.default_rng(0)
+    monkeypatch.setattr(mod._common, "run_cv", lambda b, k, fs, flt: validation.CVResult(
+        list(0.13 + 0.01 * rng.random(5)), np.array([]), 0.1))
+    grid = mod.run_grid("base", "keep_all", thin=5)
+    for fam, (builder, _) in mod.FAMILIES.items():
+        mod.register_best(fam, builder, grid[grid["model"] == fam], "base", "keep_all", "grid.csv")
+    recs = [json.loads(line) for line in (tmp_path / "registry.jsonl").read_text().splitlines()]
+    assert len(recs) == 3
+    for r in recs:
+        assert r["builder_kwargs"]["preprocessor_kwargs"] == {"skew_log1p": True} and "scaler" in r["builder_kwargs"]
+        est = data.resolve_callable(r["builder"])(**r["builder_kwargs"])      # rebuildable
+        assert "model" in est.named_steps
+        assert "ConvergenceWarnings" in r["notes"]
+
+
+def test_repeated_kfold_finalist_check_shares_its_first_repeat_with_selection_folds(dev):
+    """F20: make_cv(5, 3, 42) repeat 1 is exactly the KFold(5, shuffle, 42) split used to SELECT configs."""
+    sel = [tuple(v) for _, v in validation.make_cv(5, 1, 42).split(dev.X)]
+    rep = [tuple(v) for _, v in list(validation.make_cv(5, 3, 42).split(dev.X))[:5]]
+    assert sel == rep
+    other = [tuple(v) for _, v in list(validation.make_cv(5, 3, 7).split(dev.X))[:5]]
+    assert sel != other
+
+
+# --- holdout guard -----------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def usage_log(tmp_path, monkeypatch):
+    monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "holdout_usage.log")
+    return tmp_path / "holdout_usage.log"
+
+
+def _fitted_ridge(dev):
+    return models.build_ridge(alpha=10.0).fit(dev.X, dev.y_log)
+
+
+def test_holdout_guard_single_use_logged_forced_marked(dev, usage_log):
+    est = _fitted_ridge(dev)
+    ev = validation.score_holdout_once(est, dev.X_holdout, dev.y_holdout_log, "E999", note="probe")
+    assert ev["forced"] is False and ev["n_previous_uses"] == 0 and ev["n_holdout"] == len(dev.X_holdout)
+    assert 0.05 < ev["rmse_log"] < 0.3
+    assert len(validation.holdout_usage()) == 1
+    with pytest.raises(validation.HoldoutAlreadyUsedError):
+        validation.score_holdout_once(est, dev.X_holdout, dev.y_holdout_log, "E999")
+    assert len(validation.holdout_usage()) == 1            # a refused call logs nothing
+    forced = validation.score_holdout_once(est, dev.X_holdout, dev.y_holdout_log, "E999", force=True)
+    assert forced["forced"] is True and forced["n_previous_uses"] == 1
+    assert [e["forced"] for e in validation.holdout_usage()] == [False, True]
+
+
+def test_holdout_guard_nonfinite_prediction_does_not_consume_the_single_use(dev, usage_log):
+    class Bad:
+        def predict(self, X):
+            return np.full(len(X), np.nan)
+
+    with pytest.raises(ValueError):
+        validation.score_holdout_once(Bad(), dev.X_holdout, dev.y_holdout_log, "E999")
+    assert validation.holdout_usage() == []
+
+
+def test_holdout_is_disjoint_from_development_and_has_219_rows(dev):
+    assert set(dev.X_holdout["Id"]).isdisjoint(set(dev.X["Id"]))
+    assert len(dev.X_holdout) == 219
+
+
+@pytest.mark.xfail(strict=True, reason="F21: score_holdout_once accepts any frame, so a mistaken call with development rows consumes the single use")
+def test_holdout_guard_rejects_non_holdout_frame(dev, usage_log):
+    est = _fitted_ridge(dev)
+    with pytest.raises(ValueError):
+        validation.score_holdout_once(est, dev.X.iloc[:219], dev.y_log.iloc[:219], "E999")
