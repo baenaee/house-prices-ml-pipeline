@@ -1009,3 +1009,175 @@ def test_finalist_seed_folds_share_no_fold_with_selection_partition():
     assert config.CV_SEED_FINALISTS != config.SEED and len(fin) == 15
     assert not any(f in sel for f in fin)
     assert max(len(f & s) / len(f) for f in fin for s in sel) < 0.35
+
+
+# ---------------------------------------------------------------------------
+# Round 5: train.py, predict.py, finalists runner
+# ---------------------------------------------------------------------------
+
+import joblib as _joblib  # noqa: E402
+from sklearn.dummy import DummyRegressor  # noqa: E402
+
+from houseprices import evaluate as _evaluate  # noqa: E402
+from houseprices import predict as _predict  # noqa: E402
+from houseprices import registry as _registry  # noqa: E402
+from houseprices import train as _train  # noqa: E402
+
+
+class _SpyDummy(DummyRegressor):
+    """Module-level (picklable) estimator that records the Ids it is fit on."""
+
+    seen: list = []
+
+    def fit(self, X, y, sample_weight=None):
+        type(self).seen.append(set(X["Id"]))
+        return super().fit(X.drop(columns="Id"), y)
+
+    def predict(self, X):
+        return super().predict(X.drop(columns="Id", errors="ignore"))
+
+
+@pytest.fixture()
+def tmp_registry(tmp_path, tmp_holdout, monkeypatch):
+    """Temporary registry holding one cheap source experiment E901 (Ridge, outlier filter)."""
+    monkeypatch.setattr(config, "EXPERIMENTS_DIR", tmp_path)
+    monkeypatch.setattr(config, "REGISTRY_PATH", tmp_path / "registry.jsonl")
+    common = _load_common()
+    common.run_and_register(
+        "E901", title="src", hypothesis="h", rationale="r", implementation="i",
+        builder="houseprices.models:build_ridge", builder_kwargs={"alpha": 10.0, "preprocessor_kwargs": {"skew_log1p": True}},
+        interpret=lambda r: ("ok", "retain"), train_row_filter="drop_candidate_outliers")
+    return tmp_path
+
+
+def _finalists_module(tmp_path, monkeypatch):
+    d = str(config.PROJECT_ROOT / "experiments" / "finalists")
+    if d not in _sys.path:
+        _sys.path.insert(0, d)
+    mod = importlib.import_module("run_finalists")
+    monkeypatch.setattr(mod, "OUT_DIR", tmp_path / "finalists_out")
+    return mod
+
+
+def test_train_and_predict_never_reference_holdout_frames():
+    for module in (_train, _predict):
+        attrs, consts = _code_names(module)           # code only, docstrings excluded
+        for bad in ("X_holdout", "y_holdout_log", "score_holdout_once"):   # holdout_usage (read-only guard) is allowed
+            assert bad not in attrs and bad not in consts, (module.__name__, bad)
+
+
+def test_train_development_excludes_holdout_all_includes_it_and_filter_is_applied(tmp_registry, tmp_path):
+    # F24: rows="all" needs a prior (logged) holdout use; simulate it in a temporary log
+    log = tmp_path / "usage.log"
+    log.write_text(json.dumps({"timestamp": "t", "frozen_experiment_id": "E901", "forced": False}) + chr(10))
+    validation_mp = pytest.MonkeyPatch()
+    validation_mp.setattr(validation, "HOLDOUT_USAGE_LOG", log)
+    hold = set(json.loads(config.HOLDOUT_IDS_PATH.read_text())["holdout_ids"])
+    _SpyDummy.seen = seen = []
+
+    real = data.resolve_callable
+    mp = pytest.MonkeyPatch()
+    mp.setattr(data, "resolve_callable", lambda d: (lambda **kw: _SpyDummy()) if d.endswith("build_ridge") else real(d))
+    try:
+        _, m_dev = _train.fit_registered("E901", "development", out_dir=tmp_path / "m1", verbose=False)
+        _, m_all = _train.fit_registered("E901", "all", out_dir=tmp_path / "m2", verbose=False)
+    finally:
+        mp.undo()
+        validation_mp.undo()
+    assert not seen[0] & hold and len(seen[0]) == 1241 - len({524, 1299} - hold)
+    assert hold <= seen[1] and {524, 1299}.isdisjoint(seen[1])                 # filter applied on all rows
+    assert m_dev["rows"] == "development" and m_all["rows"] == "all" and m_all["n_rows_fit"] == 1458
+    assert "evaluate" in m_all["note"]
+
+
+def test_train_override_is_recorded_and_does_not_mutate_registry(tmp_registry, tmp_path):
+    before = (tmp_registry / "registry.jsonl").read_text()
+    _, meta = _train.fit_registered("E901", "development", override={"alpha": 3.0, "preprocessor_kwargs": {"scale": False}},
+                                    out_dir=tmp_path / "m", verbose=False)
+    assert meta["override"] == {"alpha": 3.0, "preprocessor_kwargs": {"scale": False}}
+    assert meta["builder_kwargs"] == {"alpha": 3.0, "preprocessor_kwargs": {"skew_log1p": True, "scale": False}}
+    assert (tmp_registry / "registry.jsonl").read_text() == before
+    src = {"a": {"b": {"c": 1}}}
+    out = _train.merge_override(src, {"a": {"b": {"d": 2}}})
+    assert out == {"a": {"b": {"d": 2}}} and src == {"a": {"b": {"c": 1}}}      # only ONE level is merged
+
+
+def test_predict_output_matches_sample_submission_and_does_not_touch_usage_log(tmp_registry, tmp_path, monkeypatch):
+    monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "usage.log")
+    mp, _ = _train.fit_registered("E901", "development", out_dir=tmp_path / "m", verbose=False)
+    path, rep = _predict.predict_test(mp, tmp_path / "s.csv", verbose=False)
+    sub, sample = pd.read_csv(path), pd.read_csv(config.SAMPLE_SUBMISSION_CSV)
+    assert (sub["Id"].to_numpy() == sample["Id"].to_numpy()).all() and np.isfinite(sub["SalePrice"]).all()
+    assert validation.holdout_usage() == []
+    assert set(rep["anomaly_test_ids_prediction"]) == {2593, 2550, 1877}
+
+
+def test_train_rows_all_refused_before_holdout_is_scored(tmp_registry, tmp_path, monkeypatch):
+    monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "usage.log")
+    assert validation.holdout_usage() == []
+    with pytest.raises(Exception):
+        _train.fit_registered("E901", "all", out_dir=tmp_path / "m", verbose=False)
+
+
+def test_predict_rejects_overflowing_prices(tmp_path):
+    est = DummyRegressor(strategy="constant", constant=800.0).fit(np.zeros((3, 1)), [800.0] * 3)
+    mp = tmp_path / "boom.joblib"
+    _joblib.dump(est, mp)
+    mp.with_suffix(".json").write_text(json.dumps({"feature_set": "base", "experiment_id": "X", "rows": "development"}))
+    with pytest.raises(ValueError):
+        _predict.predict_test(mp, tmp_path / "s.csv", verbose=False)
+
+
+def test_finalist_registration_reproduces_through_evaluate(tmp_registry, tmp_path, monkeypatch):
+    mod = _finalists_module(tmp_path, monkeypatch)
+    assert mod.main(["--ids", "E901", "--repeats", "2", "--seed", "7"]) == 0
+    recs = [json.loads(line) for line in (tmp_registry / "registry.jsonl").read_text().splitlines()]
+    fin = recs[-1]
+    assert fin["agent"] == "director" and fin["seed"] == 7 and fin["cv_n_repeats"] == 2 and "finalist" in fin["tags"]
+    assert len(fin["fold_scores"]) == 10 and fin["train_row_filter"] == "drop_candidate_outliers"
+    assert fin["builder_kwargs"] == recs[0]["builder_kwargs"]
+    rep = _evaluate.run_registered(fin["id"], verbose=False)
+    assert rep["reproduces_registered_scores"] is True
+    assert len(list((tmp_path / "finalists_out").glob("finalists_*.csv"))) == 1
+
+
+def test_finalist_runner_refuses_selection_seed(tmp_registry, tmp_path, monkeypatch):
+    mod = _finalists_module(tmp_path, monkeypatch)
+    with pytest.raises(SystemExit):
+        mod.main(["--ids", "E901", "--seed", "42"])
+    assert len((tmp_registry / "registry.jsonl").read_text().splitlines()) == 1
+
+
+def test_finalist_rerun_does_not_register_a_duplicate(tmp_registry, tmp_path, monkeypatch):
+    mod = _finalists_module(tmp_path, monkeypatch)
+    monkeypatch.setattr(mod, "score_finalist", lambda rec, repeats, seed: validation.CVResult([0.12] * (5 * repeats), np.array([]), 0.1))
+    mod.main(["--ids", "E901", "--repeats", "2", "--seed", "7"])
+    mod.main(["--ids", "E901", "--repeats", "2", "--seed", "7"])
+    assert len((tmp_registry / "registry.jsonl").read_text().splitlines()) == 2     # source + ONE finalist
+
+
+def test_finalist_failure_before_append_leaves_registry_untouched(tmp_registry, tmp_path, monkeypatch):
+    mod = _finalists_module(tmp_path, monkeypatch)
+    before = (tmp_registry / "registry.jsonl").read_text()
+
+    def boom(rec, repeats, seed):
+        raise RuntimeError("fit failed")
+
+    monkeypatch.setattr(mod, "score_finalist", boom)
+    with pytest.raises(RuntimeError):
+        mod.main(["--ids", "E901", "--repeats", "2", "--seed", "7"])
+    assert (tmp_registry / "registry.jsonl").read_text() == before
+    # every line written by append() is a single complete JSON object
+    for line in before.splitlines():
+        json.loads(line)
+
+
+def test_f24_f25_f26_fixes(tmp_registry, tmp_path, monkeypatch):
+    monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "usage.log")
+    with pytest.raises(RuntimeError):
+        _train.fit_registered("E901", "all", out_dir=tmp_path / "m", verbose=False)
+    _, meta = _train.fit_registered("E901", "development", out_dir=tmp_path / "m", verbose=False)
+    assert meta["includes_holdout_rows"] is False and meta["holdout_scored_before_fit"] is False
+    (tmp_path / "usage.log").write_text(json.dumps({"timestamp": "t", "frozen_experiment_id": "E901", "forced": False}) + chr(10))
+    _, meta = _train.fit_registered("E901", "all", out_dir=tmp_path / "m", verbose=False)
+    assert meta["includes_holdout_rows"] is True and meta["holdout_scored_before_fit"] is True
