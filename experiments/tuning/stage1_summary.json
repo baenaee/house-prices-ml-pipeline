@@ -65,12 +65,33 @@
     "train_row_filter": "keep_all"
   },
   "_rule": {
-    "reference_best_model_cv": 0.11945701481568845,
+    "reference_best_model_cv": 0.118066,
     "gap_threshold": 0.003,
     "improving_window": 10,
     "improving_tolerance": 0.0001,
     "overall_tuning_cap_hours": 3.0,
     "note": "reference = lowest cv_mean in the registry (any model) or this stage's best, whichever is lower; improving = best-so-far dropped by more than the tolerance across the last 10 trials",
-    "stage_elapsed_minutes": 10.77
+    "stage_elapsed_minutes": 27.98
+  },
+  "catboost_native": {
+    "best_value": 0.12212426584616276,
+    "gap_to_best_model": 0.004058265846162756,
+    "within_gap": false,
+    "improving_last_10": true,
+    "stage2_recommended": true,
+    "n_trials": 5,
+    "elapsed_minutes": 27.97,
+    "stopped_by_time_cap": true,
+    "best_params": {
+      "learning_rate": 0.03647316284911211,
+      "iterations": 800,
+      "depth": 6,
+      "l2_leaf_reg": 1.6071238512039876,
+      "subsample": 0.6460723242676091,
+      "rsm": 0.6831809216468459,
+      "native_categoricals": true
+    },
+    "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
+    "train_row_filter": "keep_all"
   }
 }

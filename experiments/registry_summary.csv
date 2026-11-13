@@ -3,6 +3,7 @@ E061,2026-11-13 12:04:34,ensemble-researcher,Ensemble: average of best_linear+be
 E062,2026-11-13 12:06:56,ensemble-researcher,Ensemble: blend of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119021,0.01965,142.49,investigate,be95c25502af
 E063,2026-11-13 12:10:06,ensemble-researcher,Ensemble: blend of all (ridge+lasso+elasticnet+xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119427,0.020123,189.41,investigate,1218a99843f1
 E060,2026-11-13 11:59:04,model-researcher,Optuna stage 1: catboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119457,0.016988,18.82,retain,c8cad1c5c963
+E065,2026-11-13 12:27:17,model-researcher,Optuna stage 1: catboost_native best of 5 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.122124,0.01642,218.39,retain,7e34b1755eff
 E058,2026-11-13 11:59:04,model-researcher,Optuna stage 1: xgboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.123071,0.019081,4.52,retain,19f60dffcbda
 E059,2026-11-13 11:59:04,model-researcher,Optuna stage 1: lightgbm best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.124416,0.019067,4.05,retain,ab1e21555f3c
 E056,2026-11-13 11:48:10,model-researcher,Lasso best of grid (robust scaler),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.12545,0.023481,0.69,retain,78d4d9be38aa
@@ -58,8 +59,8 @@ E008,2026-11-13 11:38:13,feature-researcher,Ablation: base+areas / xgboost,base+
 E014,2026-11-13 11:38:20,feature-researcher,Ablation: base+ages / xgboost,base+ages,keep_all,5,1,0.146628,0.014359,1.42,investigate,23a70ce9144b
 E020,2026-11-13 11:38:27,feature-researcher,Ablation: base+ordinal_quality / xgboost,base+ordinal_quality,keep_all,5,1,0.146971,0.019793,1.23,retain,6ebd34e1ac85
 E047,2026-11-13 11:39:11,feature-researcher,LotFrontage global_median / xgboost / base,base,keep_all,5,1,0.147014,0.018084,1.45,investigate,924b7886617c
-E004,2026-11-13 11:36:53,model-researcher,XGBoost defaults,base,keep_all,5,1,0.148681,0.018977,2.01,retain,36a21dcfa22e
 E046,2026-11-13 11:39:10,feature-researcher,LotFrontage neighborhood_median / xgboost / base,base,keep_all,5,1,0.148681,0.018977,1.73,retain,c199334d0e5a
+E004,2026-11-13 11:36:53,model-researcher,XGBoost defaults,base,keep_all,5,1,0.148681,0.018977,2.01,retain,36a21dcfa22e
 E048,2026-11-13 11:39:13,feature-researcher,LotFrontage knn / xgboost / base,base,keep_all,5,1,0.149,0.020179,1.58,investigate,1e78e043ab11
 E002,2026-11-13 11:36:50,model-researcher,OLS on numeric columns,base,keep_all,5,1,0.159875,0.034809,0.12,retain,6253593dbbbd
 E001,2026-11-13 11:36:50,model-researcher,Mean baseline,base,keep_all,5,1,0.398713,0.027407,0.03,retain,1b31242f309d

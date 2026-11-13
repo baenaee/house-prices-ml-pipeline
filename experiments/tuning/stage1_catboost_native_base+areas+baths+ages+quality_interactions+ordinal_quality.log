@@ -1,1 +1,4 @@
 [11:59:19] catboost_native: start, 25 trials, soft budget 25.0 min, filter=keep_all, threads=8
+[12:27:17] catboost_native: trial 4 done (5 complete), last=0.12358, best=0.12212, elapsed=28.0 min
+[12:27:17] catboost_native: time cap reached after 5 trials; stopping this study
+[12:27:17] catboost_native: finished, best=0.12212, elapsed=28.0 min
