@@ -670,3 +670,135 @@ def test_paired_stats_matches_hand_computation():
     d, se = ac.paired_stats([0.10, 0.12, 0.14], [0.11, 0.11, 0.11])
     assert d == pytest.approx(0.01)
     assert se == pytest.approx(np.std([-0.01, 0.01, 0.03], ddof=1) / np.sqrt(3))
+
+
+# ---------------------------------------------------------------------------
+# Round 3: ensemble.py (nested stacking and blending)
+# ---------------------------------------------------------------------------
+
+from sklearn.datasets import make_regression  # noqa: E402
+from sklearn.linear_model import Ridge  # noqa: E402
+
+from houseprices import ensemble  # noqa: E402
+from tests.test_ensemble import Memoriser  # noqa: E402,F401  (reuse the memoriser from Agent C's tests)
+
+
+@pytest.fixture(scope="module")
+def synth():
+    X, y = make_regression(n_samples=300, n_features=8, n_informative=5, noise=10.0, random_state=0)
+    return pd.DataFrame(X, columns=[f"f{i}" for i in range(8)]), pd.Series(y)
+
+
+class _Recorder(Ridge):
+    """Ridge that records the row labels of every frame it is fit on (class-level log)."""
+
+    log: list = []
+
+    def fit(self, X, y, **kw):
+        type(self).log.append(set(X.index))
+        return super().fit(X, y, **kw)
+
+
+class _LeakyStack(ensemble.NestedStackingRegressor):
+    """MUTANT: meta-learner trained on in-sample base predictions (the classic leak)."""
+
+    def fit(self, X, y):
+        y_arr = np.asarray(y, dtype=float)
+        self.fitted_bases_ = ensemble._fit_all(self.base_estimators, X, y_arr)
+        self.meta_ = Ridge(alpha=1e-6).fit(ensemble._predict_matrix(self.fitted_bases_, X), y_arr)
+        return self
+
+
+def test_nested_stack_outer_validation_rows_never_touch_any_fit(synth):
+    X, y = synth
+    _Recorder.log = []
+    stack = ensemble.NestedStackingRegressor([("rec", _Recorder())], Ridge())
+    cv = KFold(5, shuffle=True, random_state=42)
+    res = sk_cross_validate(stack, X, y, cv=cv, return_estimator=True, scoring="neg_root_mean_squared_error")
+    assert len(_Recorder.log) == 5 * (5 + 1)               # 5 inner fits + 1 refit per outer fold
+    for k, ((tr, va), fitted) in enumerate(zip(cv.split(X), res["estimator"])):
+        va_labels, tr_labels = set(X.index[va]), set(X.index[tr])
+        for fit_rows in _Recorder.log[k * 6:(k + 1) * 6]:
+            assert not fit_rows & va_labels and fit_rows <= tr_labels
+        assert tr_labels.isdisjoint(va_labels)
+        assert len(fitted.fitted_bases_) == 1 and fitted.inner_oof_.shape == (len(tr), 1)
+
+
+def test_nested_stack_meta_is_fit_on_inner_oof_of_outer_train_only(synth):
+    X, y = synth
+    bases_ = [("a", Ridge(alpha=1.0)), ("b", Ridge(alpha=1000.0))]
+    cv = KFold(5, shuffle=True, random_state=42)
+    stack = ensemble.NestedStackingRegressor(bases_, Ridge(alpha=1.0))
+    res = sk_cross_validate(stack, X, y, cv=cv, return_estimator=True)
+    for (tr, va), fitted in zip(cv.split(X), res["estimator"]):
+        oof = ensemble.inner_oof_matrix(bases_, X.iloc[tr], y.iloc[tr].to_numpy(), 5, 42)
+        np.testing.assert_allclose(fitted.inner_oof_, oof)
+        np.testing.assert_allclose(fitted.meta_.coef_, Ridge(alpha=1.0).fit(oof, y.iloc[tr]).coef_)
+        # base refit on the FULL outer-train partition
+        ref = Ridge(alpha=1.0).fit(X.iloc[tr], y.iloc[tr])
+        np.testing.assert_allclose(fitted.fitted_bases_[0][1].coef_, ref.coef_)
+
+
+def test_leaky_mutant_is_caught_by_a_two_base_memoriser_probe(synth):
+    """A memoriser plus an honest Ridge: nested stack should lean on Ridge; the leaky mutant leans on the memoriser."""
+    X, y = synth
+    bases_ = [("mem", Memoriser()), ("ridge", Ridge(alpha=1.0))]
+    honest = validation.cross_validate(ensemble.NestedStackingRegressor(bases_, Ridge(alpha=1e-6)), X, y).mean
+    leaky = validation.cross_validate(_LeakyStack(bases_, Ridge()), X, y).mean
+    ridge_only = validation.cross_validate(Ridge(alpha=1.0), X, y).mean
+    assert honest == pytest.approx(ridge_only, rel=0.15)
+    assert leaky > 3 * honest
+
+
+def test_single_memoriser_test_cannot_tell_honest_from_leaky_stack(synth):
+    """Documents the sensitivity limit of test_ensemble.py's memoriser test (finding F16)."""
+    X, y = synth
+    mem = [("mem", Memoriser())]
+    honest = validation.cross_validate(ensemble.NestedStackingRegressor(mem, Ridge(alpha=1e-6)), X, y).mean
+    leaky = validation.cross_validate(_LeakyStack(mem, Ridge()), X, y).mean
+    assert honest > 0.8 * float(np.std(y)) and leaky > 0.8 * float(np.std(y))   # both pass the existing assertion
+
+
+def test_blend_weights_none_are_learned_per_outer_fold_from_outer_train_only(synth):
+    X, y = synth
+    from sklearn.neighbors import KNeighborsRegressor
+    bases_ = [("a", Ridge(alpha=1.0)), ("b", KNeighborsRegressor(n_neighbors=7))]
+    cv = KFold(5, shuffle=True, random_state=42)
+    res = sk_cross_validate(ensemble.BlendingRegressor(bases_), X, y, cv=cv, return_estimator=True)
+    all_w = []
+    for (tr, _), fitted in zip(cv.split(X), res["estimator"]):
+        oof = ensemble.inner_oof_matrix(bases_, X.iloc[tr], y.iloc[tr].to_numpy(), 5, 42)
+        np.testing.assert_allclose(fitted.weights_, ensemble.fit_blend_weights(oof, y.iloc[tr].to_numpy()))
+        all_w.append(fitted.weights_)
+    assert not np.allclose(all_w[0], all_w[1])
+    # fixed weights: nothing learned, template untouched
+    fixed = ensemble.BlendingRegressor(bases_, weights=[0.5, 0.5])
+    assert fixed.fit(X, y).weights_.tolist() == [0.5, 0.5]
+
+
+def test_optimistic_diagnostics_cannot_flow_through_run_and_register(tmp_path, tmp_holdout, monkeypatch):
+    monkeypatch.setattr(config, "EXPERIMENTS_DIR", tmp_path)
+    monkeypatch.setattr(config, "REGISTRY_PATH", tmp_path / "registry.jsonl")
+    common = _load_common()
+    score = ensemble.optimistic_oof_stack_score([("r", Ridge())], Ridge(), pd.DataFrame(np.random.rand(60, 2)),
+                                               pd.Series(np.random.rand(60)))
+    assert isinstance(score, float)
+    with pytest.raises(AttributeError):
+        common.run_and_register("E903", title="t", hypothesis="h", rationale="r", implementation="i",
+                                builder="houseprices.ensemble:build_stack", builder_kwargs={},
+                                interpret=lambda r: ("x", "retain"), result=score)
+    assert not (tmp_path / "registry.jsonl").exists()
+
+
+def test_stack_registers_and_reproduces_through_evaluate(tmp_path, tmp_holdout, monkeypatch):
+    from houseprices import evaluate
+
+    monkeypatch.setattr(config, "EXPERIMENTS_DIR", tmp_path)
+    monkeypatch.setattr(config, "REGISTRY_PATH", tmp_path / "registry.jsonl")
+    common = _load_common()
+    kw = {"base_builders": ["houseprices.models:build_ridge", "houseprices.models:build_ridge"],
+          "base_kwargs": [{"alpha": 3.0}, {"alpha": 30.0}], "meta": "ridge"}
+    common.run_and_register("E904", title="t", hypothesis="h", rationale="r", implementation="i",
+                            builder="houseprices.ensemble:build_stack", builder_kwargs=kw,
+                            interpret=lambda r: ("ok", "retain"))
+    assert evaluate.run_registered("E904", verbose=False)["reproduces_registered_scores"] is True

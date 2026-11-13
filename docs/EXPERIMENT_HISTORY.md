@@ -57,3 +57,22 @@ Separate issue, not fixed on purpose: a `node: command not found` hook error com
 ## Experiments
 
 (appended as they run; format: id, hypothesis, rationale, implementation, evaluation, results, interpretation, decision)
+
+### 2026-11-13 — E001–E004 baselines (Phase B), feature set "base", keep_all, KFold(5, shuffle, seed 42)
+
+Run by the director with `experiments/models/run_baselines.py` after Agent D's Phase A sign-off. The first run created `experiments/holdout_ids.json` (219 ids, 15 %, stratified by price decile, seed 42); it is committed and must never be regenerated. Development set: 1,241 rows.
+
+| id | model | CV RMSE (log1p) | fold std | fold scores | seconds |
+|---|---|---|---|---|---|
+| E001 | Mean baseline | 0.3987 | 0.0274 | 0.368, 0.427, 0.427, 0.378, 0.394 | 0.03 |
+| E002 | OLS on numeric columns | 0.1599 | 0.0348 | 0.134, 0.217, 0.168, 0.136, 0.144 | 0.12 |
+| E003 | Ridge alpha=10, one-hot | 0.1409 | 0.0316 | 0.120, 0.185, 0.163, 0.112, 0.125 | 1.15 |
+| E004 | XGBoost defaults | 0.1487 | 0.0190 | 0.127, 0.158, 0.176, 0.138, 0.144 | 2.01 |
+
+Reproducibility: `python -m houseprices.evaluate --experiment E003` and `--experiment E004` both return `reproduces_registered_scores: true` (fold scores equal to 1e-5).
+
+Interpretation (director):
+- The mean baseline (0.399) is the standard deviation of log-price in the development set; every model must be judged against it.
+- Numeric-only OLS removes 60 % of that error (0.160). Adding one-hot categoricals with L2 shrinkage (Ridge alpha=10, untuned) improves to 0.141; default XGBoost on the same inputs gives 0.149 with a visibly smaller fold spread (0.019 vs 0.032).
+- Fold 2 is the hard fold for every linear model (Ridge 0.185 vs 0.112–0.125 elsewhere); the two EDA outliers (Ids 524, 1299) are development rows and fall into validation there. This is exactly the case the training-fold-only outlier policy (C2) is designed to measure, and it is why selection decisions must use paired per-fold differences, not means alone.
+- Decisions: all four retained as reference levels. Nothing is tuned yet; the Ridge alpha and the boosters are refined in C4/C5.

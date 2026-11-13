@@ -1,0 +1,5 @@
+id,timestamp,agent,title,feature_set,train_row_filter,cv_n_splits,cv_n_repeats,cv_mean,cv_std,fit_seconds,decision,config_hash
+E003,2026-11-13 11:36:51,model-researcher,"Ridge alpha=10, one-hot",base,keep_all,5,1,0.140883,0.031594,1.15,retain,228caf1d4c77
+E004,2026-11-13 11:36:53,model-researcher,XGBoost defaults,base,keep_all,5,1,0.148681,0.018977,2.01,retain,36a21dcfa22e
+E002,2026-11-13 11:36:50,model-researcher,OLS on numeric columns,base,keep_all,5,1,0.159875,0.034809,0.12,retain,6253593dbbbd
+E001,2026-11-13 11:36:50,model-researcher,Mean baseline,base,keep_all,5,1,0.398713,0.027407,0.03,retain,1b31242f309d
