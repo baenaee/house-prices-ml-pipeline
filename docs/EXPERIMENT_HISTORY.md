@@ -114,3 +114,19 @@ Interpretation (Agent A, confirmed by the director):
 | D12 | Linear models (Ridge, Lasso, ElasticNet) always use `preprocessor_kwargs={"skew_log1p": True}`; trees never do | apply to all models; apply to none | Gains of about 0.009 for both linear models, consistent across base and all; the transformer is fit in-fold (column selection learned from training rows only, verified by Agent D in VALIDATION_AUDIT section 5.4). Trees are invariant to monotone transforms, so applying it there would only add cost. |
 | D13 | LotFrontage keeps the neighbourhood-median in-fold imputation (the original notebook's semantic choice) | global median; KNN | No method differs by more than 0.002 and none exceeds the paired standard error; the default is kept because it is the documented choice of the original cleaning log and costs nothing. |
 | D14 | Registry decisions "retain/reject/investigate" from the runners use a one-paired-standard-error rule on 5 folds and are provisional | decide on means | Agent D's note: differences near 0.001 are noise at 5 folds; finalists are confirmed with RepeatedKFold 5x3 before anything is frozen. |
+
+### 2026-11-13 — E049–E054: outlier policy under training-fold-only filtering (C2)
+
+Run by Agent B with `experiments/models/run_outlier_policy.py` on feature set "all" (D11), linear models with skew (D12), KFold(5, shuffle, seed 42). The keep_all cells reuse E041 (Ridge), E042 (ElasticNet) and E023 (XGBoost). Validation folds are always complete; the policies remove rows from the training part of each fold only (D3). Paired differences against keep_all in brackets; SE = standard deviation of the five per-fold differences / sqrt(5).
+
+| policy | Ridge alpha=10 | ElasticNet(0.001, 0.5) | XGBoost defaults |
+|---|---|---|---|
+| keep_all | 0.13042 | 0.12562 | 0.13561 |
+| drop_candidate_outliers (Ids 524, 1299) | 0.13480 (+0.0044, SE 0.0053) | 0.13205 (+0.0064, SE 0.0057) | 0.14062 (+0.0050, SE 0.0028) |
+| drop_GrLivArea_gt_4000 (also removes 692, 1183) | 0.13603 (+0.0056, SE 0.0058) | 0.13417 (+0.0085, SE 0.0065) | 0.13641 (+0.0008, SE 0.0036) |
+
+Interpretation (Agent B, confirmed by the director): keep_all ranks first for all three models. Dropping the two EDA outliers is worse beyond one paired SE for ElasticNet and XGBoost; the GrLivArea rule is worse beyond one SE for ElasticNet and level for XGBoost. Mechanism: Ids 1299, 692 and 1183 fall in validation fold 1 and Id 524 in fold 2, and validation folds are never filtered, so a model trained without the extreme houses is still judged on them; the linear fold standard deviation rises from about 0.023 to about 0.035. Under an honest protocol the "outlier removal" that is common in public notebooks only helps when the same rows are also removed from the validation side, which deletes the hard cases from the score.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D15 | Training-row filter is keep_all for all remaining experiments and for the final fit | drop Ids 524 and 1299; drop GrLivArea > 4000 | Table above: no policy beats keep_all for any model; three of six cells are worse beyond one paired SE, the rest within noise. The final model is therefore trained on all development rows (and later all training rows). Robustness to extreme houses is measured, not assumed. |
