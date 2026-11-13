@@ -63,9 +63,9 @@ def main(argv: list[str] | None = None) -> int:
         if isinstance(kwargs, str):
             kwargs = json.loads(kwargs)
         existing = find_registered(rec["builder"], kwargs, rec.get("feature_set", "base"),
-                                   rec.get("train_row_filter", "keep_all"), n_repeats=args.repeats)
-        # find_registered assumes config.SEED; check the seed explicitly on the hit
-        if existing is not None and int(registry.get_experiment(existing).get("seed", -1)) == args.seed:
+                                   rec.get("train_row_filter", "keep_all"), n_repeats=args.repeats,
+                                   seed=args.seed)
+        if existing is not None:
             prev = registry.get_experiment(existing)
             print(f"{exp_id}: finalist check already registered as {existing} ({prev['cv_mean']:.5f}); reusing")
             scores = [float(s) for s in prev["fold_scores"]]

@@ -10,8 +10,9 @@ performance: that evidence comes exclusively from ``python -m houseprices.evalua
 Rows:
 * ``development`` (default): the 1,241 rows outside the single-use holdout. Use this for the
   model that is scored once on the holdout with ``validation.score_holdout_once``.
-* ``all``: every training row including the holdout. Use this ONLY after the holdout has been
-  scored and the procedure frozen, for the final submission model.
+* ``all``: every training row including the holdout. Allowed ONLY after the holdout has been
+  scored (``validation.holdout_usage()`` non-empty, audit F24); such a model has seen the
+  holdout and must never be passed to ``score_holdout_once``.
 
 The training-row filter recorded in the registry is applied (ruling D15: keep_all).
 An ``--override`` JSON is merged one level deep into ``builder_kwargs`` (e.g. to switch on the
@@ -74,6 +75,11 @@ def fit_registered(experiment_id: str, rows: str = "development", override: dict
     """Fit the registered builder on ``rows`` and save ``<id>_<rows>.joblib`` plus a JSON sidecar."""
     if rows not in ("development", "all"):
         raise ValueError("rows must be 'development' or 'all'")
+    if rows == "all" and not validation.holdout_usage():
+        raise RuntimeError(
+            "rows='all' includes the holdout rows; refusing because the holdout has not been scored yet "
+            "(audit F24). Freeze the procedure, call validation.score_holdout_once, then fit on all rows."
+        )
     rec = registry.get_experiment(experiment_id)
     kwargs = rec.get("builder_kwargs") or {}
     if isinstance(kwargs, str):
@@ -105,6 +111,8 @@ def fit_registered(experiment_id: str, rows: str = "development", override: dict
         "feature_set": feature_set,
         "train_row_filter": rec.get("train_row_filter", "keep_all"),
         "rows": rows,
+        "includes_holdout_rows": rows == "all",
+        "holdout_scored_before_fit": bool(validation.holdout_usage()),
         "n_rows_fit": int(len(X_fit)),
         "n_rows_available": int(len(dev.X)),
         "fit_seconds": round(fit_seconds, 2),

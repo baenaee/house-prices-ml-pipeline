@@ -188,3 +188,38 @@ Reading for the report: a registered best score has an optimism of roughly one s
 Tuning results admissible to the registry: YES. The outlier-policy, linear-grid and Optuna Stage 1 results may be registered and used for Stage-2 decisions, with the scores described as selection-optimistic (7.3).
 
 Finalist step C8 (RepeatedKFold 5x3): UNBLOCKED, F20 verified fixed (finalist seed 7).
+
+## 8. Round 5 - train.py, predict.py, end-to-end test, finalists runner
+
+Date 2026-11-13. Code at commits `8e1e257` and `d2e4ac7` (read only). Probes: `tests/test_audit_round2.py`, round 5 block (all paths and registries redirected to temp directories; the real registry was not written by me). Full suite: 210 passed, 3 strict xfails (F24, F25, F26).
+
+### 8.1 Findings
+
+| ID | Severity | Location | Finding | Failing example | Suggested fix | Status |
+|---|---|---|---|---|---|---|
+| F24 | Medium | train.py `fit_registered`, rows="all" | `--rows all` is accepted before the holdout has been scored. The artefact `<id>_all.joblib` has seen every holdout row; if anyone then passes it (or any model refit from it) to `score_holdout_once`, the single unbiased estimate is destroyed, and nothing in the artefact or the guard says so. The existing end-to-end test itself fits `rows="all"` without a prior holdout use. | `fit_registered("E901", "all", ...)` with an empty `holdout_usage()` succeeds | Refuse `rows="all"` unless `validation.holdout_usage()` is non-empty (or an explicit `force_all` flag that is written to the sidecar). Add `rows_include_holdout: true` to the sidecar and make `score_holdout_once` accept only estimators whose sidecar says `development`. | Open (strict xfail `test_train_rows_all_refused_before_holdout_is_scored`) |
+| F25 | Low | predict.py `predict_test` | Docstring promises "finite and positive after expm1", but only the LOG predictions are checked finite and the price check is `> 0`, which `inf` passes. A log prediction above about 709 would write `inf` into the submission file. Unlikely with real models, reachable with a broken one. | constant log prediction 800 writes `inf` prices (`test_predict_rejects_overflowing_prices`) | `if not np.isfinite(price).all(): raise`. | Open (strict xfail) |
+| F26 | Low | run_finalists.py duplicate check | The logic is wrong. `find_registered` builds its probe with `seed=config.SEED` (42), so its config hash can only match a seed-42 record; a finalist registered with seed 7 has a different hash and is never found. The follow-up test "hit has seed == args.seed" can therefore never be true, the reuse branch is dead code, and re-running the script registers a second finalist record with the same configuration (new id, same hash). Scores stay correct; the registry gets duplicates. | run `main(["--ids","E901","--repeats","2","--seed","7"])` twice: two finalist records | Give `find_registered` a `seed` parameter, or scan the registry for equal (builder, kwargs, feature_set, filter, repeats, seed). | Open (strict xfail `test_finalist_rerun_does_not_register_a_duplicate`) |
+| F27 | Info | registry.py `append` | A single `write` of one JSON line, then `write_summary`. A failed finalist run (fit error, interrupt) raises before `append`, so no half-written line is created by the runner (probe). Residual risks: a process killed during the write could leave a truncated last line, which makes `load_registry` raise for everybody; an exception in `write_summary` after the write leaves the line present and the summary stale; there is no file lock, so two writers can take the same `next_id` (this already happened once in practice when two agents registered concurrently). | n/a | Keep the registry lock policy; optionally write to a temp file and append atomically, and let `load_registry` skip a truncated final line. | Note |
+| F28 | Info | train.py / predict.py | Artefacts are pickles (joblib): load only your own files. The sidecar records the git commit and library versions (good for R6). `predict` does not warn that a `rows="all"` artefact must not be used for CV or holdout claims. | n/a | Print the `rows` value in the predict report (already present as `rows_fit`). | Note |
+
+### 8.2 Answers to the director's questions
+
+1. **rows="all" before the holdout is scored:** yes it can be invoked, and it should be refused until `holdout_usage()` is non-empty (F24). Training on all rows does not itself leak into CV, but it produces a model that cannot be used for the holdout estimate, and the file name alone does not prevent a mix-up.
+2. **Holdout frames in train/predict:** no. Code-level scan (docstrings excluded) finds no `X_holdout`, `y_holdout_log`, `score_holdout_once` or `holdout_usage` in either module. For `development` the fit rows are disjoint from the holdout ids (1,239 rows with the outlier filter, 1,241 without); for `all` they include them. `predict` loads data with the holdout split switched off, uses only `X_test`, and leaves the usage log untouched (probe).
+3. **Finalist records vs `evaluate`:** consistent. The record stores builder, kwargs, feature set, filter, `cv_n_splits`, `cv_n_repeats` and `seed` (7); `evaluate.run_registered(<finalist id>)` rebuilds the same pipeline, uses the same repeats and seed, and `reproduces_registered_scores` is True (`test_finalist_registration_reproduces_through_evaluate`, 2 repeats, outlier filter). The runner refuses seed 42 and writes nothing in that case. The comparison CSV is written to a single timestamped file.
+4. **Half-written registry line:** not from a failed run; see F27 for the residual cases.
+
+### 8.3 Verified without findings
+
+- `merge_override` merges exactly one level (nested dicts updated, deeper dicts replaced), does not mutate its input, and the override is stored in the sidecar next to the merged `builder_kwargs`; the registry file is byte-identical after a `train` run.
+- The registered `train_row_filter` is applied to the fit rows (rows="all" with the outlier filter fits 1,458 rows, without Ids 524 and 1299).
+- The sidecar states it is not CV evidence and points to `evaluate`; it records config hash, rows, row counts, commit and versions.
+- `predict`: Ids merged onto `sample_submission` (order and length enforced, a missing or duplicated Id raises), log predictions checked finite, price positive, the D18 anomaly Ids are printed.
+- `run_finalists`: scores with `validation.cross_validate` on development data only, seed 7 default and 5x3, registers agent "director", tag finalist, new experiment per id with source id in notes, paired difference against the best on the same 15 folds.
+
+### 8.4 Sign-off
+
+C8 finalists tooling (`run_finalists.py`): approved. Do not re-run it for an id that already has a finalist record until F26 is fixed, to avoid duplicate registry lines.
+
+F1 tooling (`train.py`, `predict.py`): approved for `--rows development` and for `predict`. `--rows all` is BLOCKED by F24 until the guard exists; until then run it only after `score_holdout_once` has been called and logged.

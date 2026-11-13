@@ -108,12 +108,17 @@ def run_and_register(
 
 
 def find_registered(builder: str, builder_kwargs: dict, feature_set: str = "base",
-                    train_row_filter: str = "keep_all", n_repeats: int = 1) -> str | None:
-    """Return the id of an existing experiment with the same config_hash, else None."""
+                    train_row_filter: str = "keep_all", n_repeats: int = 1,
+                    seed: int = config.SEED) -> str | None:
+    """Return the id of an existing experiment with the same config_hash, else None.
+
+    ``seed`` is part of the hash (audit F26): finalist checks use ``config.CV_SEED_FINALISTS``.
+    """
     probe = registry.Experiment(
         id="", agent=AGENT, title="", hypothesis="", rationale="", implementation="", evaluation="",
         builder=builder, builder_kwargs=builder_kwargs, feature_set=feature_set,
         train_row_filter=train_row_filter, cv_n_splits=config.CV_N_SPLITS, cv_n_repeats=n_repeats,
+        seed=seed,
     )
     reg = registry.load_registry()
     if reg.empty or "config_hash" not in reg.columns:

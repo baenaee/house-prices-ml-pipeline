@@ -39,6 +39,8 @@ def predict_test(model_path: Path, out_path: Path | None = None, verbose: bool =
     if not np.all(np.isfinite(pred_log)):
         raise ValueError(f"{int((~np.isfinite(pred_log)).sum())} non-finite log predictions")
     price = validation.from_log_target(pred_log)
+    if not np.all(np.isfinite(price)):
+        raise ValueError("non-finite price predictions after expm1 (log predictions too large)")
     if not np.all(price > 0):
         raise ValueError("non-positive price predictions")
 

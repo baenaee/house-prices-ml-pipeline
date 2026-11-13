@@ -51,6 +51,12 @@ def test_predict_writes_valid_submission(artefact, tmp_path):
     assert set(report["anomaly_test_ids_prediction"]) == {2593, 2550, 1877}
 
 
-def test_fit_rows_all_uses_every_training_row(tmp_path):
+def test_fit_rows_all_is_refused_until_the_holdout_is_scored(tmp_path, monkeypatch):
+    from houseprices import validation
+    monkeypatch.setattr(validation, "HOLDOUT_USAGE_LOG", tmp_path / "holdout_usage.log")
+    with pytest.raises(RuntimeError, match="F24"):
+        train.fit_registered("E001", rows="all", out_dir=tmp_path, verbose=False)
+    (tmp_path / "holdout_usage.log").write_text('{"frozen_experiment_id": "E999"}\n', encoding="utf-8")
     model_path, meta = train.fit_registered("E001", rows="all", out_dir=tmp_path, verbose=False)
-    assert meta["n_rows_fit"] == 1460
+    assert meta["n_rows_fit"] == 1460 and meta["includes_holdout_rows"] is True
+    assert meta["holdout_scored_before_fit"] is True
