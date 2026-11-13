@@ -265,6 +265,8 @@ def main() -> None:
     ap.add_argument("--train-row-filter", default="keep_all")
     ap.add_argument("--budget-minutes", type=float, default=40.0)
     ap.add_argument("--dry-run", action="store_true", help=f"{DRY_RUN_ROWS} rows; no registry write, no files saved")
+    ap.add_argument("--diagnostics-only", action="store_true",
+                    help="run only the diversity analysis (writes the diversity CSV, registers nothing)")
     ap.add_argument("--fast-trees", action="store_true", help="dry-run only: tiny n_estimators/iterations for trees")
     args = ap.parse_args()
     if args.fast_trees and not args.dry_run:
@@ -340,6 +342,9 @@ def main() -> None:
         print(f"saved {path}")
 
     # ---- ensembles ---------------------------------------------------------------------------
+    if args.diagnostics_only:
+        print("\n[diagnostics-only] no ensembles run, registry untouched.")
+        return
     print("\nEnsembles")
     rows = []
     for it in items:
