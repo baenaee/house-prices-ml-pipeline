@@ -65,3 +65,8 @@ F11 fixed/verified; F12–F15 Info (filter name int vs float; knn silent fallbac
 ## 7. Agent wrap-up reports at the pause
 
 (appended below as received)
+
+**Director's observation of Stage 1 state at the cut-off (from the logs; agents' own replies did not arrive before the usage limit):**
+- xgboost: 25/25 trials, best 0.12307, 2.2 min. lightgbm: 25/25 trials, best 0.12442, 1.7 min. catboost (one-hot): RUNNING at the cut-off, 5+ trials done, best-so-far 0.12052 at 11:53 (process may have continued or been interrupted by Agent B; either way the SQLite study holds every completed trial). catboost-native: not started.
+- NOTHING from Stage 1 is registered yet (registry still 57 lines); the script registers each booster's best only when the whole run finishes. Resume with the same command; completed trials are skipped. Then `stage1_summary.json` gives the Stage-2 rule evaluation. All three boosters are within 0.003 of the best model so far (CatBoost 0.1205 provisional best overall), so expect Stage 2 for at least CatBoost.
+- Agent D's round 4 (`docs/VALIDATION_AUDIT.md` §7, `tests/test_audit_round2.py`) and Agent A's draft `docs/drafts/STUDY_GUIDE_part1_data_features.md` were saved in whatever state they reached and are committed; both are marked/must be treated as IN PROGRESS. Notebook 02 was re-executed by Agent A (0 errors at last check); re-verify on resume.
