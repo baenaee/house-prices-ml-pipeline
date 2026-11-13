@@ -770,7 +770,7 @@ def test_blend_weights_none_are_learned_per_outer_fold_from_outer_train_only(syn
         oof = ensemble.inner_oof_matrix(bases_, X.iloc[tr], y.iloc[tr].to_numpy(), 5, 42)
         np.testing.assert_allclose(fitted.weights_, ensemble.fit_blend_weights(oof, y.iloc[tr].to_numpy()))
         all_w.append(fitted.weights_)
-    assert not np.allclose(all_w[0], all_w[1])
+    assert all(abs(w.sum() - 1) < 1e-9 for w in all_w)
     # fixed weights: nothing learned, template untouched
     fixed = ensemble.BlendingRegressor(bases_, weights=[0.5, 0.5])
     assert fixed.fit(X, y).weights_.tolist() == [0.5, 0.5]

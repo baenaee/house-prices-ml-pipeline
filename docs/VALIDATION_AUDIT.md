@@ -63,7 +63,7 @@ Date 2026-11-13. State audited: working tree with the director's `data._with_id`
 |---|---|---|---|---|---|---|
 | F9 | High | features.py:54-62 (`group_base`), data.py `load_development_data` | `group_base` drops `Id`, so the feature table had no `Id`; `validation.drop_candidate_outliers` selects rows by Id and raised KeyError. The comment "X includes Id" was false and `describe()` subtracted a non-existent column. | `drop_candidate_outliers(dev.X, dev.y_log)` raised KeyError 'Id' | Re-attach Id at the data entry point (models already drop it). | Fixed by director (`_with_id`), verified by me: Id is the first column of X, X_holdout and X_test; the filter removes exactly Ids 524 and 1299; Id never reaches an estimator (`LazyPreprocessor` and `NumericMedianImputer` drop it, output feature names checked). Tests: `tests/test_data.py` and `test_base_group_excludes_id_by_design_and_data_reattaches_it`. |
 | F10 | Low | experiments/models/_common.py:21-41, 70-100 | New dry-run mode (`set_dry_run`) makes `get_data` return the first N rows of the full table with no holdout split, but `run_and_register` has no guard. If a script calls `set_dry_run(n)` and registers, a truncated-data score enters the append-only registry as a real experiment. No current script does this. | `set_dry_run(120)` then `run_and_register("E902", ...)` appends a record | Raise in `run_and_register` when `_DRY_RUN_ROWS` is not None. | Fixed (`run_and_register` now raises RuntimeError in dry-run mode, `_common.py:76`); verified by `test_dry_run_results_must_not_be_registered`, which flipped from strict xfail to pass |
-| F11 | Low | models.py `CatBoostNative.fit` | Text columns are detected with `dtype == object` or `str(dtype) in ("category","string")`. Under pandas 3 the default text dtype prints as "str", so categoricals would be missed. Correct today (pandas pinned 2.3.3), but violates the pandas 2/3 rule. | pandas 3: `str(pd.Series(["a"]).dtype)` is "str" | Use `not pd.api.types.is_numeric_dtype(X[c])`, as `preprocess.split_columns` does. | Open, not blocking |
+| F11 | Low | models.py `CatBoostNative.fit` | Text columns are detected with `dtype == object` or `str(dtype) in ("category","string")`. Under pandas 3 the default text dtype prints as "str", so categoricals would be missed. Correct today (pandas pinned 2.3.3), but violates the pandas 2/3 rule. | pandas 3: `str(pd.Series(["a"]).dtype)` is "str" | Use `not pd.api.types.is_numeric_dtype(X[c])`, as `preprocess.split_columns` does. | Fixed by Agent B (`models.py:153` now uses `not is_numeric_dtype`); verified by reading the code, behaviour covered by `test_catboost_native_fill_text_learns_nothing` |
 | F12 | Info | data.py `get_train_row_filter` | Threshold parsed with `float`, factory name built with `int(threshold)`; a non-integer threshold would resolve to a filter with a different name. Integer thresholds (all planned) are consistent. Closes F8 for integers. | `get_train_row_filter("drop_GrLivArea_gt_4000.5").__name__` is `drop_GrLivArea_gt_4000` | Parse as int or format the name with `:g`. | Open, note |
 | F13 | Info | preprocess.py `make_preprocessor` | With `lotfrontage="knn"` and a missing predictor column (or `neighborhood_median` without Neighborhood), LotFrontage silently falls back to the plain numeric median. | `make_preprocessor(X.drop(columns="LotArea"), lotfrontage="knn")` | Raise instead of falling back. | Open, note |
 | F14 | Info | registry.py `Experiment` | The record stores seed, builder, kwargs, folds and filter but not library versions or the git commit, so R6 relies on the pinned `requirements.txt`. | n/a | Add `git_commit` and environment fields later. | Open, note |
@@ -107,3 +107,40 @@ Round 1 re-check: F1-F3 stay fixed (ordinary tests). F4 fixed: the holdout load 
 - `ensemble.py` still needs its own audit round before experiments depend on it.
 
 Phase A SIGN-OFF: approved, baselines E001-E004 may run.
+
+## 6. Round 2b and Round 3
+
+### 6.1 Round 2b: `SkewLog1pTransformer`, `KNNLotFrontageImputer`, feature-ablation runners
+
+Full review is in section 5.4 (done during round 2 at the director's request): fit-only learning, per-fold column selection, donor pool limited to training rows, NaN predictors, scaling after the KNN fill, runners use only `_common` entry points, never touch the holdout, skip duplicate config hashes, dry-run cannot register (F10 fixed). Remaining Info items: F13 (silent fallback if a KNN predictor is missing; harmless because the ablation uses the full base set) and the one-paired-SE decision rule being provisional.
+
+Round 2b SIGN-OFF: approved, the `--skew` ablation pass and the `lotfrontage="knn"` comparison may run.
+
+### 6.2 Round 3: `ensemble.py` and `tests/test_ensemble.py`
+
+Audited against binding correction 1. Probes: `tests/test_audit_round2.py`, round 3 block (7 tests, all passing).
+
+| ID | Severity | Location | Finding | Failing example | Suggested fix | Status |
+|---|---|---|---|---|---|---|
+| F16 | Low | tests/test_ensemble.py `test_nested_stack_is_not_fooled_by_a_memorising_base` | The test is not sensitive to the most important bug. With a single memoriser base, a stack whose meta-learner is trained on IN-SAMPLE base predictions (the classic leak) scores the same as the honest nested stack, because the meta weight on the memoriser is irrelevant when the base returns the mean for unseen rows. Both pass the `> 0.8 * std` assertion. The OOF test (`test_inner_oof_rows_are_never_seen...`) does catch leaky OOF generation, so the code is protected, but the meta-training-data leak has no test in Agent C's file. | `_LeakyStack` mutant on `[Memoriser]` scores about std(y), like the honest stack | Add a two-base test: memoriser plus Ridge, assert nested is close to Ridge-only and the leak is much worse. My probe `test_leaky_mutant_is_caught_by_a_two_base_memoriser_probe` does this: honest within 15% of Ridge alone, leaky mutant more than 3x worse. | Open (covered by my probe; not blocking) |
+| F17 | Low | ensemble.py `optimistic_oof_stack_score`, `in_sample_stack_score`; registry.py `append` | The optimistic diagnostics return a plain float and are labelled in name and docstring. They cannot flow through `_common.run_and_register` (it needs a CVResult; probe passes a float and gets AttributeError, registry untouched), and they are not registry builders, so `evaluate` cannot run them. Missing guard: nothing stops someone building `registry.Experiment(cv_mean=<optimistic float>)` by hand, and `append` has no check. | `registry.append(Experiment(..., cv_mean=in_sample_stack_score(...)))` succeeds | In `registry.append`, require `fold_scores` with `cv_n_splits` entries per repeat, and add a `tags` rule rejecting an `optimistic` tag on `retain` decisions. Optional. | Open, not blocking |
+| F18 | Info | ensemble.py `build_blend(weights=[...])` | Fixed weights are not learned, so no leakage in the stack itself, but weights chosen by looking at the same development-fold OOF scores (for example from earlier experiments on the same folds) make the blend's CV score optimistic. | n/a | Use `weights=None` (learned in fit) for reported scores; fixed weights only if specified before looking at scores, or equal weights. | Note |
+| F19 | Info | ensemble.py | `passthrough=True` casts X with `np.asarray(X, float)`, which fails on the project's mixed-type frames. Not reachable: `build_stack` defaults to False and the director decided passthrough=False only. File starts with a UTF-8 BOM, harmless to Python. | n/a | None needed. | Note |
+
+Verified without findings (evidence):
+
+1. Base models fit on outer-train only: a recording base shows 6 fits per outer fold (5 inner plus 1 refit), every fit set is a subset of the outer-train rows and disjoint from the outer validation rows (`test_nested_stack_outer_validation_rows_never_touch_any_fit`).
+2. Meta-learner trained on inner OOF of the outer-train partition: for each outer fold, `inner_oof_` equals `inner_oof_matrix` recomputed on outer-train alone, and the fitted meta coefficients equal a Ridge fit on that matrix (`test_nested_stack_meta_is_fit_on_inner_oof_of_outer_train_only`).
+3. Bases refit on the whole outer-train partition: fitted base coefficients equal a fresh Ridge on all outer-train rows.
+4. Outer validation fold scored once with the refit bases and the meta-learner, never a row used for the meta fit: `cross_validate` calls `fit` on the training indices and `predict` on the validation indices only; `fit` never receives them (point 1).
+5. `BlendingRegressor(weights=None)`: per outer fold, `weights_` equals `fit_blend_weights` on inner OOF of that fold's training rows; they sum to 1 and are non-negative; fixed weights learn nothing.
+6. Single outer protocol: `NestedStackingRegressor` and `BlendingRegressor` are clone-safe estimators; nesting is inside `fit`; `validation.cross_validate` and sklearn's cross_validate both work. Training-row filters shrink the outer-train rows before `fit`, so filtered rows never enter the inner CV (Agent C's `test_filter_applies_to_training_side_only`).
+7. Memoriser OOF test is sensitive to leaky OOF generation: an in-sample OOF would return y exactly and fail the `> 0.5 std` assertion.
+8. R6: a stack registered through `run_and_register` (two Ridge bases, Ridge meta) reproduces through `evaluate.run_registered` (`test_stack_registers_and_reproduces_through_evaluate`).
+9. Optimistic diagnostics cannot be registered through the runner (F17 describes the remaining manual path).
+
+Round 3 SIGN-OFF: approved, ensemble experiments may run (F16-F19 are non-blocking).
+
+### 6.3 Status update 2026-11-13
+
+F10 and F11 verified fixed (see section 5.1). E001-E004 are registered and E003/E004 reproduce through `evaluate`; `experiments/holdout_ids.json` exists. All audit probes redirect the registry and holdout paths to temporary directories, so they never write to the real registry.
