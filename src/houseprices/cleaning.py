@@ -305,6 +305,9 @@ def clean_train_test() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, dict[str, 
     test, raw_test = load_raw(config.TEST_CSV)
     train_clean, train_counts = clean(train, raw_train)
     test_clean, test_counts = clean(test, raw_test)
+    # A4: audit columns for both frames (adds columns only; values are never edited).
+    train_clean = add_anomaly_flags(train_clean)
+    test_clean = add_anomaly_flags(test_clean)
     return train_clean, test_clean, {"train": train_counts, "test": test_counts}
 
 

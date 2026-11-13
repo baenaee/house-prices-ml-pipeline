@@ -50,9 +50,9 @@ def load_development_data(feature_set: str = "base", with_holdout_split: bool = 
         dev, hold = train_clean, train_clean.iloc[0:0]
 
     groups = parse_feature_set(feature_set)
-    X = features.build_features(dev, groups)
-    X_hold = features.build_features(hold, groups)
-    X_test = features.build_features(test_clean, groups)
+    X = _with_id(dev, features.build_features(dev, groups))
+    X_hold = _with_id(hold, features.build_features(hold, groups))
+    X_test = _with_id(test_clean, features.build_features(test_clean, groups))
 
     y_log = validation.to_log_target(dev[config.TARGET])
     y_hold = validation.to_log_target(hold[config.TARGET]) if len(hold) else pd.Series(dtype=float)
@@ -61,6 +61,21 @@ def load_development_data(feature_set: str = "base", with_holdout_split: bool = 
         if config.TARGET in frame.columns:
             frame.drop(columns=[config.TARGET], inplace=True)
     return DevelopmentData(X, y_log, X_hold, y_hold, X_test, groups)
+
+
+def _with_id(source: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
+    """Re-attach ``Id`` as the first column of a feature table.
+
+    ``features.group_base`` deliberately excludes the identifier from the model inputs, but the
+    training-row policies in ``validation`` (``drop_candidate_outliers``) select rows by Id, and
+    ``predict.py`` needs it to write the submission. Every model builder drops ``Id`` before
+    preprocessing, so it never reaches an estimator. (Director fix, 2026-11-13.)
+    """
+    if config.ID_COL in X.columns:
+        return X
+    X = X.copy()
+    X.insert(0, config.ID_COL, source[config.ID_COL].to_numpy())
+    return X
 
 
 def resolve_callable(dotted: str) -> Callable:

@@ -6,7 +6,7 @@ Independent review of the binding methodology (decisions D1-D6, requirements R1-
 
 Test result (houseprices env, Python 3.12): `19 passed, 3 xfailed`. The three xfails are strict and pin findings F1-F3; they flip to failures when the code is fixed, which is the signal to remove the marker.
 
-> Status: round 1 complete. Rounds 2+ (cleaning, preprocess, models, ensembles, final pipeline) are WIP / not started.
+> Status: round 1 complete (F1-F8 closed or noted). Round 2 (Phase A pipeline: cleaning, features, preprocess, models, data, runner) complete on 2026-11-13, see section 5. Phase A SIGN-OFF: approved, baselines E001-E004 may run. Ensembles, outlier-policy and tuning scripts and the final pipeline remain for later rounds.
 
 ## 2. Round 1 findings
 
@@ -36,13 +36,13 @@ Not yet created: `experiments/holdout_ids.json` does not exist, so R4 cannot be 
 
 | Req | Status | Evidence / note |
 |---|---|---|
-| R1 log1p target, RMSE on log scale, expm1 inverse | Verified | Tests for rmse_log, rmsle_dollars, round trip. Models not yet built; re-check that each pipeline is fit on `to_log_target` output. |
-| R2 fitted preprocessing inside training folds | Not yet applicable | No preprocessing pipeline exists yet. Round 2: GroupMedianImputer and encoders. |
+| R1 log1p target, RMSE on log scale, expm1 inverse | Verified | Tests for rmse_log, rmsle_dollars, round trip. Round 2: `load_development_data` builds `y_log` with `to_log_target(dev[SalePrice])`, aligned by Id; `_common.run_cv` and `evaluate` pass `dev.y_log`. |
+| R2 fitted preprocessing inside training folds | Verified (Phase A) | Cleaning has no fitted statistic (AST probe). All learning is in `LazyPreprocessor`, `NumericMedianImputer`, `GroupMedianImputer`; sklearn `cross_validate(return_estimator=True)` shows per-fold medians equal the training-fold medians and differ between folds. Optional `SkewLog1pTransformer` and `KNNLotFrontageImputer` (default off) are fit-only too but not used by E001-E004. |
 | R3 filters after split, training part only, identical validation index | Verified (runner level) | Tests d. Still to check: any future filter that uses statistics across training rows must not see validation rows (the interface guarantees this). |
-| R4 holdout carved once, deterministic, seed 42, decile-stratified | Partly verified | Generator verified. JSON not yet written; no tuning-time access control exists (nothing prevents loading the holdout frame). Re-check usage log at the end. |
-| R5 nested CV for stacking | Not yet applicable | No stacking code. Note F1 must be fixed before OOF from `cross_validate` is used. |
-| R6 reproducibility via `evaluate --experiment` | Not yet applicable | `evaluate.py` does not exist; registry stores seed, folds, builder. |
-| R7 originals untouched, no SalePrice in features, no test info in fits | Not yet applicable | Cleaning code not yet audited. Original files unchanged as far as visible; confirm against commit fedba71 in the final round. |
+| R4 holdout carved once, deterministic, seed 42, decile-stratified | Partly verified (round 2: F4 fix confirmed; `holdout_ids.json` still absent and will be created by the first real run; `_common.run_cv` never reads the holdout frames) | Generator verified. JSON not yet written; no tuning-time access control exists (nothing prevents loading the holdout frame). Re-check usage log at the end. |
+| R5 nested CV for stacking | Not yet audited | `ensemble.py` exists (Agent C, synthetic tests only); audit in a later round. F1 is fixed, so OOF from single-pass `cross_validate` is well defined. |
+| R6 reproducibility via `evaluate --experiment` | Verified | Executable probe registers a Ridge run in a temporary registry and `evaluate.run_registered` reproduces the fold scores (same data entry point, seed, filter resolution). |
+| R7 originals untouched, no SalePrice in features, no test info in fits | Verified (Phase A) | AST probes: cleaning and features never reference SalePrice or any fitting call; `clean` is row-wise (subset equals subset of full), so train and test cannot influence each other; train and test are never concatenated. Original-file hashes to be re-confirmed in the final round. |
 
 Cross-cutting item (added by director): dtype checks must use `select_dtypes(include=["object", "string"])` so behaviour is identical under pandas 2 and 3. Status: not yet applicable; to be checked in cleaning/preprocess rounds. Environment: pandas 2.3.3, scikit-learn 1.9.1; the validation tests were re-run there with the same result as on sklearn 1.7.2 (19 passed, 3 xfailed), so finding F1's root cause (RepeatedKFold has no `n_splits`) holds on 1.9.1 as well.
 
@@ -52,3 +52,46 @@ Cross-cutting item (added by director): dtype checks must use `select_dtypes(inc
 2. How will holdout access be controlled during tuning? Suggest a function that logs each call to `experiments/holdout_usage.log` and refuses a second scoring call.
 3. Selection bias: with many experiments compared on the same 5 folds, small differences below the fold standard deviation are noise. Proposal: only retain changes that win on RepeatedKFold 5x3 or by more than one paired standard error.
 4. `drop_large_living_area(4000)` is not equivalent to the two-Id list. On train.csv it selects four houses: Ids 524 and 1299 (low price for size) but also 692 and 1183 (prices 755,000 and 745,000, consistent with their size). Those two are legitimate extreme-value houses, so this policy removes real signal and should be registered as a distinct experiment, not as a proxy for the Id list. Rule-based variants should use the area-versus-price residual, not area alone.
+
+## 5. Round 2 - Phase A pipeline audit
+
+Date 2026-11-13. State audited: working tree with the director's `data._with_id` fix, `cleaning.clean_train_test` calling `add_anomaly_flags`, the `anomaly_flags` feature group, and Agent B's `_common.py` with dry-run mode. `preprocess.py` gained optional `SkewLog1pTransformer` and `KNNLotFrontageImputer` (default off) while the audit was running; they were probed lightly and are NOT used by E001-E004. Executable probes: `tests/test_audit_round2.py` (40 passed, 1 strict xfail). Full suite: 157 passed, 1 xfailed. The probes never create the real holdout or registry files (paths are redirected to temp directories).
+
+### 5.1 Findings
+
+| ID | Severity | Location | Finding | Failing example | Suggested fix | Status |
+|---|---|---|---|---|---|---|
+| F9 | High | features.py:54-62 (`group_base`), data.py `load_development_data` | `group_base` drops `Id`, so the feature table had no `Id`; `validation.drop_candidate_outliers` selects rows by Id and raised KeyError. The comment "X includes Id" was false and `describe()` subtracted a non-existent column. | `drop_candidate_outliers(dev.X, dev.y_log)` raised KeyError 'Id' | Re-attach Id at the data entry point (models already drop it). | Fixed by director (`_with_id`), verified by me: Id is the first column of X, X_holdout and X_test; the filter removes exactly Ids 524 and 1299; Id never reaches an estimator (`LazyPreprocessor` and `NumericMedianImputer` drop it, output feature names checked). Tests: `tests/test_data.py` and `test_base_group_excludes_id_by_design_and_data_reattaches_it`. |
+| F10 | Low | experiments/models/_common.py:21-41, 70-100 | New dry-run mode (`set_dry_run`) makes `get_data` return the first N rows of the full table with no holdout split, but `run_and_register` has no guard. If a script calls `set_dry_run(n)` and registers, a truncated-data score enters the append-only registry as a real experiment. No current script does this. | `set_dry_run(120)` then `run_and_register("E902", ...)` appends a record | Raise in `run_and_register` when `_DRY_RUN_ROWS` is not None. | Open (strict xfail `test_dry_run_results_must_not_be_registered`) |
+| F11 | Low | models.py `CatBoostNative.fit` | Text columns are detected with `dtype == object` or `str(dtype) in ("category","string")`. Under pandas 3 the default text dtype prints as "str", so categoricals would be missed. Correct today (pandas pinned 2.3.3), but violates the pandas 2/3 rule. | pandas 3: `str(pd.Series(["a"]).dtype)` is "str" | Use `not pd.api.types.is_numeric_dtype(X[c])`, as `preprocess.split_columns` does. | Open, not blocking |
+| F12 | Info | data.py `get_train_row_filter` | Threshold parsed with `float`, factory name built with `int(threshold)`; a non-integer threshold would resolve to a filter with a different name. Integer thresholds (all planned) are consistent. Closes F8 for integers. | `get_train_row_filter("drop_GrLivArea_gt_4000.5").__name__` is `drop_GrLivArea_gt_4000` | Parse as int or format the name with `:g`. | Open, note |
+| F13 | Info | preprocess.py `make_preprocessor` | With `lotfrontage="knn"` and a missing predictor column (or `neighborhood_median` without Neighborhood), LotFrontage silently falls back to the plain numeric median. | `make_preprocessor(X.drop(columns="LotArea"), lotfrontage="knn")` | Raise instead of falling back. | Open, note |
+| F14 | Info | registry.py `Experiment` | The record stores seed, builder, kwargs, folds and filter but not library versions or the git commit, so R6 relies on the pinned `requirements.txt`. | n/a | Add `git_commit` and environment fields later. | Open, note |
+| F15 | Info | config.py `CONSTANT_IN_TRAIN_FLAGS` | The dropped flags were chosen by inspecting the training data (always False). This is a design-time choice, not a fitted statistic, but test-only anomalies (Id 2121, GarageYearUnknown, MiscFeatureConflict) are invisible to models. | n/a | Document in the report. | Open, note |
+
+Round 1 re-check: F1-F3 stay fixed (ordinary tests). F4 fixed: the holdout load rejects unknown and duplicate ids (`test_f4_holdout_file_validated`). F5 fixed: the dictionary key is `CemntBd` mapping to the data spelling `CmentBd` and the old no-op key is gone (`test_f5_exterior2nd_key_is_cemntbd`). F8 closed for integer thresholds (see F12).
+
+### 5.2 Verified without findings (evidence)
+
+1. cleaning (a): AST probe finds no reference to "SalePrice" or `config.TARGET` outside docstrings (`test_cleaning_never_reads_target_or_fits_statistics`, plus the older test in `test_cleaning.py`).
+2. cleaning (b): the same probe finds no call to median, mean, mode, std, quantile, groupby, transform, interpolate, ffill, bfill, rank, concat, merge or fit; every `fillna` argument is a literal constant. Fills are constant labels or 0 for bath counts.
+3. cleaning (c): `clean(df.iloc[sample])` equals `clean(df).iloc[sample]` for 300 random rows of train and of test, so no rule uses other rows. `clean_train_test` calls the same `clean` on each table separately and never concatenates them. Columns are identical except SalePrice.
+4. cleaning (d): B04 is a condition on 11 basement fields; it selects no train row and exactly test Id 2121. The Id appears only in docstrings, never in code constants.
+5. cleaning (e): the `rule_c01` docstring says RECONSTRUCTION and "NOT recovered code"; `config.py` also labels it reconstructed.
+6. cleaning (f): the input frames equal deep copies taken before `clean`; Id order and the SalePrice series are unchanged.
+7. cleaning (g): `clean_train_test` output minus the three anomaly columns equals `clean` output exactly; test Id 2593 keeps GarageYrBlt 2207 and is flagged; Ids 2550 and 1877 are flagged.
+8. cleaning (h): cleaning.py has no dtype logic; the post-clean check uses `select_dtypes(include=["object","string"])`. `preprocess.split_columns` uses `is_numeric_dtype`, identical under pandas 2 and 3. Only `CatBoostNative` is not (F11).
+9. features: all seven groups are row-wise (a 200-row subset build equals the same rows of the full build); no fit calls or target references; `quality_to_number` maps Unknown, NaN and unrecognised labels to NaN, absence labels to 0, Po..Ex to 1..5; the duplicate guard raises ValueError and an unknown group raises KeyError; base excludes SalePrice, Id, constant flags and anomaly flags; the anomaly group is 0/1 integers and enters only when requested.
+10. preprocess: `GroupMedianImputer` fitted on two different frames gives different group and global medians; `transform` on new rows uses the training medians, falls back to the training global median for unseen or all-NaN groups and does not change fitted state. `make_preprocessor` gives the same structure for the full frame, a shuffled copy and an empty frame (names and dtypes only). `_as_text` keeps NaN. The OneHotEncoder ignores unseen categories. MSSubClass, MoSold, YrSold route to the categorical branch. RobustScaler is present only when `scale=True`. Repeated transforms are identical.
+11. models: under sklearn `cross_validate(return_estimator=True)` with 5 folds, each fitted numeric median vector equals the independently computed training-fold median and differs between folds; the LotFrontage NAmes median equals the training-fold value and differs between folds; Id is absent from the output features; the template estimator stays unfitted. `NumericMedianImputer` stores the training median and does not change on transform. `scaler="standard"` replaces RobustScaler. `CatBoostNative._fill_text` fills NaN with the constant "Unknown" and changes no fitted attribute. All eight builders construct with no data; seeds are 42 and thread counts fixed at 8. Mean and OLS pipelines predict finite values.
+12. data: features are row-wise, and building on the full cleaned train then dropping holdout rows equals the entry point's X (`test_holdout_split_then_features_equals_features_then_split`); dev and holdout Ids are disjoint and total 1,460; `y_log` equals `log1p(SalePrice)` aligned by Id. `_common.run_cv` and `run_and_register` never reference holdout frames. `drop_GrLivArea_gt_4000` resolves to a filter of the same name that keeps GrLivArea <= 4000.
+13. runner: `run_and_register` refuses a duplicate id; the record holds builder, kwargs, feature set, filter, splits, repeats, seed, fold scores, mean and hash. `evaluate.run_registered` reproduces the registered fold scores of a Ridge run with the outlier filter, using the same entry point and seed.
+14. Optional components: `SkewLog1pTransformer` and `KNNLotFrontageImputer` learn only from the rows given to fit and do not change on transform. They need a full review before an experiment depends on them.
+
+### 5.3 Notes for the director
+
+- `experiments/holdout_ids.json` does not exist yet. The first real run creates it deterministically; commit it right after E001.
+- The `tests/test_models.py` clone failures mentioned in the brief did not appear in the final full run.
+- `ensemble.py` and the new optional preprocessing components need their own audit round before experiments depend on them.
+
+Phase A SIGN-OFF: approved, baselines E001-E004 may run.

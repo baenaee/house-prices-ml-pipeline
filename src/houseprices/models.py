@@ -149,8 +149,8 @@ class CatBoostNative(RegressorMixin, BaseEstimator):
         return X
 
     def fit(self, X: pd.DataFrame, y) -> CatBoostNative:
-        self.cat_cols_ = [c for c in X.columns
-                          if X[c].dtype == object or str(X[c].dtype) in ("category", "string")]
+        # any non-numeric column is text (object, category, string, pandas 3 "str"), as in preprocess.split_columns
+        self.cat_cols_ = [c for c in X.columns if not pd.api.types.is_numeric_dtype(X[c])]
         self.model_ = self._make().fit(self._fill_text(X), np.asarray(y), cat_features=self.cat_cols_)
         return self
 

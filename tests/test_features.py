@@ -19,7 +19,7 @@ def frames():
 def test_group_names_and_unknown_group(frames):
     train, _ = frames
     assert set(features.FEATURE_SETS) == {
-        "base", "areas", "baths", "ages", "quality_interactions", "ordinal_quality",
+        "base", "areas", "baths", "ages", "quality_interactions", "ordinal_quality", "anomaly_flags",
     }
     with pytest.raises(KeyError):
         features.build_features(train, ["nope"])
@@ -48,8 +48,8 @@ def test_all_groups_shape(frames):
     train, _ = frames
     full = features.build_features(train, list(features.FEATURE_SETS))
     base = features.build_features(train, ["base"])
-    # areas 2 + baths 1 + ages 3 + interactions 2 + ordinal 10 = 18 extra columns
-    assert full.shape == (len(train), base.shape[1] + 18)
+    # areas 2 + baths 1 + ages 3 + interactions 2 + ordinal 10 + flags 3 = 21 extra columns
+    assert full.shape == (len(train), base.shape[1] + 21)
 
 
 def test_derived_values(frames):
@@ -129,3 +129,133 @@ def test_group_median_imputer_uses_fit_data_only():
     # Transforming did not change the learned statistics.
     assert imputer.group_medians_ == {"A": 15.0, "B": 100.0}
     assert imputer.global_median_ == 20.0
+
+
+# ---------------------------------------------------------------------------
+# A4: anomaly flags group
+# ---------------------------------------------------------------------------
+
+
+def test_anomaly_flags_group_counts_and_ids(frames):
+    train, test = frames
+    cols = features.ANOMALY_FLAG_COLS
+    # The cleaning entry point itself carries the flags on both frames.
+    for frame in (train, test):
+        assert all(c in frame.columns for c in cols)
+    flags_test = features.build_features(test, ["anomaly_flags"])
+    assert list(flags_test.columns) == cols
+    assert all(str(t) == "int64" for t in flags_test.dtypes)
+    assert flags_test.sum().to_dict() == {
+        "GarageYrBltImplausible": 2, "SoldBeforeBuilt": 1, "RemodBeforeBuilt": 1,
+    }
+    by_id = flags_test.set_index(test["Id"])
+    assert by_id.loc[2593, "GarageYrBltImplausible"] == 1
+    assert by_id.loc[2550, "SoldBeforeBuilt"] == 1
+    assert by_id.loc[1877, "RemodBeforeBuilt"] == 1
+    # Id 2550 (sold before built) also has an implausible garage year: exactly 3 distinct houses.
+    assert int(flags_test.any(axis=1).sum()) == 3
+    # The training data has no anomaly at all: the group is constant (all zero) there.
+    assert int(features.build_features(train, ["anomaly_flags"]).to_numpy().sum()) == 0
+
+
+def test_anomaly_flags_never_in_base(frames):
+    train, _ = frames
+    base = features.build_features(train, ["base"])
+    assert not set(features.ANOMALY_FLAG_COLS) & set(base.columns)
+
+
+# ---------------------------------------------------------------------------
+# SkewLog1pTransformer
+# ---------------------------------------------------------------------------
+
+
+def _skew_frame(rng, n=400):
+    return pd.DataFrame({
+        "skewed": rng.exponential(2.0, n),
+        "normal": rng.normal(10, 1, n),
+        "negative_skewed": rng.exponential(2.0, n) - 1.0,   # min < 0 -> never selected
+        "constant": np.ones(n),
+    })
+
+
+def test_skew_selects_by_skew_and_min():
+    rng = np.random.default_rng(0)
+    X = _skew_frame(rng)
+    t = preprocess.SkewLog1pTransformer(0.75).fit(X)
+    assert t.skewed_columns_ == ["skewed"]
+
+
+def test_skew_columns_depend_on_fold_sample():
+    rng = np.random.default_rng(1)
+    # Same column, but heavy tail only in the first half: skewed there, symmetric in the second.
+    half_a = np.concatenate([rng.normal(5, 0.5, 190), [60.0] * 10])
+    half_b = rng.normal(5, 0.5, 200)
+    A = pd.DataFrame({"x": half_a, "y": rng.exponential(1, 200)})
+    B = pd.DataFrame({"x": half_b, "y": rng.exponential(1, 200)})
+    ta = preprocess.SkewLog1pTransformer().fit(A)
+    tb = preprocess.SkewLog1pTransformer().fit(B)
+    assert "x" in ta.skewed_columns_ and "x" not in tb.skewed_columns_
+
+
+def test_skew_transform_uses_fitted_columns_on_unseen_rows():
+    rng = np.random.default_rng(2)
+    X = _skew_frame(rng)
+    t = preprocess.SkewLog1pTransformer().fit(X)
+    unseen = pd.DataFrame({"skewed": [0.0, 3.0, np.nan], "normal": [1.0, 2.0, 3.0],
+                           "negative_skewed": [-5.0, 0.0, 1.0], "constant": [1.0, 1.0, 1.0]})
+    out = t.transform(unseen)
+    np.testing.assert_allclose(out[:2, 0], np.log1p([0.0, 3.0]))
+    assert np.isnan(out[2, 0])
+    np.testing.assert_array_equal(out[:, 1:], unseen.to_numpy()[:, 1:])  # untouched columns
+    # a unseen sample that is symmetric does not change which columns are used
+    sym = pd.DataFrame(rng.normal(0, 1, (50, 4)), columns=X.columns)
+    t2 = preprocess.SkewLog1pTransformer().fit(X)
+    t2.transform(sym)
+    assert t2.skewed_columns_ == ["skewed"]
+
+
+def test_skew_threshold_edges():
+    rng = np.random.default_rng(3)
+    X = _skew_frame(rng)
+    s = X["skewed"].skew()
+    assert preprocess.SkewLog1pTransformer(threshold=s - 1e-9).fit(X).skewed_columns_ == ["skewed"]
+    assert preprocess.SkewLog1pTransformer(threshold=s).fit(X).skewed_columns_ == []  # strictly greater
+    assert preprocess.SkewLog1pTransformer(threshold=1e9).fit(X).skewed_columns_ == []
+    allcols = preprocess.SkewLog1pTransformer(threshold=-1e9).fit(X).skewed_columns_
+    assert allcols == ["skewed", "normal", "constant"]  # still excludes min<0 (constant has skew 0)
+
+
+def test_skew_all_nan_column_is_ignored():
+    X = pd.DataFrame({"a": [np.nan] * 5, "b": [0.0, 1.0, 1.0, 1.0, 50.0]})
+    t = preprocess.SkewLog1pTransformer().fit(X)
+    assert t.skewed_columns_ == ["b"]
+
+
+def test_make_preprocessor_skew_option(frames):
+    train, _ = frames
+    X = features.build_features(train, ["base"])
+    pre = preprocess.make_preprocessor(X, skew_log1p=True)
+    out = pre.fit_transform(X)
+    assert not np.isnan(out).any()
+    chosen = pre.named_transformers_["numeric"].named_steps["skew"].skewed_columns_
+    assert "LotArea" in chosen and "OverallQual" not in chosen
+    plain = preprocess.make_preprocessor(X).fit_transform(X)
+    assert out.shape == plain.shape
+
+
+# ---------------------------------------------------------------------------
+# KNN LotFrontage option
+# ---------------------------------------------------------------------------
+
+
+def test_knn_lotfrontage_option(frames):
+    train, test = frames
+    X = features.build_features(train, ["base"])
+    X_test = features.build_features(test, ["base"])
+    pre = preprocess.make_preprocessor(X, lotfrontage="knn")
+    out = pre.fit_transform(X)
+    assert not np.isnan(out).any()
+    assert not np.isnan(pre.transform(X_test)).any()
+    assert pre.fit_transform(X).shape == preprocess.make_preprocessor(X).fit_transform(X).shape
+    with pytest.raises(ValueError):
+        preprocess.make_preprocessor(X, lotfrontage="mode")

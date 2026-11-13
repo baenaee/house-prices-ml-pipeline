@@ -13,10 +13,10 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | A1 | `cleaning.py`: 17 rules as pure functions + reconstructed C01 + condition-based B04 | feature-researcher | P0.6 | done | commit `564e88b`; all counts asserted |
 | A2 | `tests/test_cleaning.py`: all verification counts, schema, Id/SalePrice integrity | feature-researcher | A1 | done | green |
 | A3 | `notebooks/01_cleaning_repaired.ipynb`: C01 restored, duplicate removed, runs top-to-bottom from notebooks/ | feature-researcher | A1 | done | executed copy: 80 cells, 0 errors, C01 output 1/12 and 1/9; original SHA unchanged |
-| A4 | Anomaly policy (flags + derived columns only), dictionary spelling map use | feature-researcher | A1 | review | check agent report in SESSION_CHECKPOINT; verify tests on Ids 2593/2550/1877 |
-| A5 | Audit of A1–A4 (no SalePrice use, no fitted statistics, no train/test concatenation) | validation-auditor | A2, A3 | todo | round 2, not yet requested |
+| A4 | Anomaly policy (flags + derived columns only), dictionary spelling map use | feature-researcher | A1 | in-progress | 2026-11-13: flags wired into `clean_train_test`, group `anomaly_flags` added; tests on Ids 2593/2550/1877 pending |
+| A5 | Audit of A1–A4 (no SalePrice use, no fitted statistics, no train/test concatenation) | validation-auditor | A2, A3 | in-progress | round 2 started 2026-11-13 after auth-failure recovery; includes director fix F9 (Id re-attached in data.py) |
 | B1 | `preprocess.py` + `features.py` base feature set; first pipelines | feature-researcher | A1 | review | files exist, `tests/test_features.py` green; interface check by Agent B pending |
-| B2 | Baselines E001–E004 (mean, OLS numeric, Ridge one-hot, default XGB) | model-researcher | B1 | in-progress | `models.py` + `experiments/models/run_baselines.py` written, NOT run; registry empty |
+| B2 | Baselines E001–E004 (mean, OLS numeric, Ridge one-hot, default XGB) | model-researcher | B1 | blocked | scripts ready, NOT run; blocked on A5 sign-off |
 | B3 | Metric/fold/holdout verification, per-fold refit check | validation-auditor | B2 | in-progress | round 1 done: F1–F3 found and fixed by director; `tests/test_validation.py` green |
 | C0 | `ensemble.py` (NestedStackingRegressor, BlendingRegressor) + synthetic tests | ensemble-researcher | P0.6 | in-progress | see agent report |
 | C1 | Feature ablations (groups on/off, 3 models) | feature-researcher | B2 | todo | |
@@ -31,3 +31,5 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | F1 | `evaluate.py`, `train.py`, `predict.py`, end-to-end test, submission file (not submitted) | director | C8 | todo | |
 | F2 | Final independent review of pipeline and claims | validation-auditor | F1 | todo | |
 | D1 | README, RESEARCH_REPORT, STUDY_GUIDE, EXPERIMENT_HISTORY, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY | director (+B, C review) | F2 | todo | mandatory deliverables |
+
+| R1 | Recovery audit after 2026-11-13 Cloudflare 403 failure: originals hashed, dirty files reviewed, tests run | director | – | done | see EXPERIMENT_HISTORY 2026-11-13 entry; 96 passed / 12 stale agent tests failing at recovery |

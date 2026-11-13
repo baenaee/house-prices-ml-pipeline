@@ -30,6 +30,30 @@ Chronological. Each experiment also has a machine-readable record in `experiment
 | D7 | pandas pinned to 2.3.3 in the research env | pandas 3.1.1 (resolved by pip) | pandas 3 changes the default string dtype; pinning keeps the repaired notebook's semantics identical to the original run. Code still uses `select_dtypes(include=["object","string"])` to be forward-compatible. |
 | D8 | `cross_validate` raises on non-finite predictions and on an empty training fold | return NaN | A NaN score would be written to the registry and sorted last silently (Agent D, F2/F3). |
 
+## 2026-11-13 — Session recovery after authentication failure
+
+Context. A new session resumed from commit `1c67494`. The three Sonnet teammates (validation-auditor, model-researcher, feature-researcher) were spawned and each failed within minutes with `API Error: 403 Attention Required! | Cloudflare` ("Please run /login"). The user re-authenticated; the teammates were resumed one at a time (auditor first as the connectivity probe) and continued from their transcripts.
+
+Files touched before the failure (all reviewed by the director, none discarded):
+
+| File | Author | Change | Verdict |
+|---|---|---|---|
+| `src/houseprices/data.py` | director | `_with_id` re-attaches `Id` as the first column of X / X_holdout / X_test | kept: fixes a real defect (see F9 below) |
+| `tests/test_data.py` | director | 4 tests: Id first and unique, Id/target alignment, outlier filter works on the feature table, feature-set parsing | kept, green |
+| `experiments/models/_common.py` | director + B | `agent` kwarg on `run_and_register`; B added `set_dry_run`, `_load`, `find_registered` (config-hash lookup) | kept |
+| `src/houseprices/cleaning.py` | A | `clean_train_test` now applies `add_anomaly_flags` to both frames (3 lines, additive) | kept, pending D's re-check |
+| `src/houseprices/features.py` | A | new group `anomaly_flags` (never in "base") | kept; A updates the two stale shape/name tests |
+| `tests/test_models.py` | B | builder smoke tests; the clone test compared parameter lists containing estimator objects / NaN | kept; B fixes the clone test |
+
+Test state at the moment of recovery: 96 passed, 12 failed, all 12 in the two stale agent tests above; no pipeline test failed. Originals verified byte-identical to `fedba71`/`1c67494` (SHA-256: notebook 1BB32B57…, train 1E18ADDF…, test 8FDD3D82…). Line endings: director edits had converted two LF files to CRLF; normalised back before commit.
+
+Separate issue, not fixed on purpose: a `node: command not found` hook error comes from the user-level `~/.claude/settings.json` ("pixel-agents" hooks call `node`, which is not installed on PATH). It is unrelated to the `houseprices` environment; a backup `settings.json.pixel-agents.backup` exists next to it. Left to the user.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D9 | `data.load_development_data` re-attaches `Id` as the first column after feature construction (F9, High) | make `group_base` keep Id; make the outlier filters positional | `group_base` deliberately excludes the identifier from model inputs; the training-row filters select by Id (`config.CANDIDATE_OUTLIER_IDS`) and `predict.py` needs Id for the submission. Every builder drops `Id` before preprocessing, so it never reaches an estimator. Before the fix `drop_candidate_outliers` raised `KeyError: 'Id'` on the feature table (reproduced on 2026-11-13); after the fix `tests/test_data.py` asserts exactly Ids 524 and 1299 are removed. |
+| D10 | Interrupted agent work is kept and completed by its owner, not reverted | `git checkout` of the dirty files | Each partial change was reviewed and is additive; reverting would redo work. The two stale tests are the owners' to update, keeping file ownership intact. |
+
 ## Experiments
 
 (appended as they run; format: id, hypothesis, rationale, implementation, evaluation, results, interpretation, decision)

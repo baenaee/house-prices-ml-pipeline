@@ -114,6 +114,15 @@ def group_ordinal_quality(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def group_anomaly_flags(df: pd.DataFrame) -> pd.DataFrame:
+    """The three anomaly flags as 0/1 integers (GarageYrBltImplausible, SoldBeforeBuilt, RemodBeforeBuilt).
+
+    Requires the flag columns produced by ``cleaning.clean_train_test`` / ``add_anomaly_flags``.
+    Never part of "base"; tested only as an extra group in the ablation.
+    """
+    return df[ANOMALY_FLAG_COLS].astype("int64")
+
+
 FEATURE_SETS: dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = {
     "base": group_base,
     "areas": group_areas,
@@ -121,6 +130,7 @@ FEATURE_SETS: dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = {
     "ages": group_ages,
     "quality_interactions": group_quality_interactions,
     "ordinal_quality": group_ordinal_quality,
+    "anomaly_flags": group_anomaly_flags,
 }
 
 

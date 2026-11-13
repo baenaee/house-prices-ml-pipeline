@@ -11,9 +11,9 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
+from sklearn.impute import KNNImputer, SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, RobustScaler
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, RobustScaler, StandardScaler
 
 from houseprices import config
 
@@ -47,6 +47,79 @@ class GroupMedianImputer(TransformerMixin, BaseEstimator):
         return np.array([self.value_col])
 
 
+class SkewLog1pTransformer(TransformerMixin, BaseEstimator):
+    """Apply log1p to the numeric columns that are right-skewed in the TRAINING fold.
+
+    ``fit`` learns the column list (a fitted statistic, so it must come from the training fold
+    only): every column whose skewness (NaN skipped, pandas definition) is strictly greater
+    than ``threshold`` AND whose minimum is >= 0. Constant columns (skew 0) fail the default
+    threshold, all-NaN columns and columns with negative values are never selected. ``transform`` applies
+    ``log1p`` to exactly those fitted columns of whatever rows it receives (NaN stays NaN);
+    values below 0 in unseen rows are clipped to 0 first so log1p stays defined.
+
+    Placed BEFORE the imputer in the numeric branch: the imputed value is then a statistic of
+    the transformed scale. For the median strategy this is identical to imputing first
+    (log1p is monotone), for the mean strategy it is the more sensible choice.
+    Note that rare 0/1 indicator columns can pass the skew test; log1p of a binary column is
+    a harmless monotone relabelling.
+    """
+
+    def __init__(self, threshold: float = 0.75):
+        self.threshold = threshold
+
+    def fit(self, X, y=None) -> "SkewLog1pTransformer":
+        frame = X if isinstance(X, pd.DataFrame) else pd.DataFrame(np.asarray(X))
+        self.feature_names_in_ = np.array([str(c) for c in frame.columns], dtype=object)
+        values = frame.astype("float64")
+        skew = values.skew(skipna=True)
+        minimum = values.min(skipna=True)
+        selected = (skew > self.threshold) & (minimum >= 0)
+        self.log_mask_ = selected.fillna(False).to_numpy(dtype=bool)
+        self.skewed_columns_ = list(self.feature_names_in_[self.log_mask_])
+        return self
+
+    def transform(self, X) -> np.ndarray:
+        arr = np.array(X, dtype="float64", copy=True)
+        if arr.shape[1] != len(self.log_mask_):
+            raise ValueError("SkewLog1pTransformer received a different number of columns than in fit")
+        cols = self.log_mask_
+        arr[:, cols] = np.log1p(np.clip(arr[:, cols], 0, None))
+        return arr
+
+    def get_feature_names_out(self, input_features=None) -> np.ndarray:
+        return np.asarray(self.feature_names_in_ if input_features is None else input_features, dtype=object)
+
+
+# Predictors used by the optional KNN LotFrontage imputer (lot size and house size/quality).
+KNN_LOTFRONTAGE_PREDICTORS = ["LotArea", "1stFlrSF", "GrLivArea", "OverallQual", "YearBuilt"]
+
+
+class KNNLotFrontageImputer(TransformerMixin, BaseEstimator):
+    """Fill NaN in column 0 (LotFrontage) from its ``n_neighbors`` nearest training houses.
+
+    Input is a DataFrame/array whose FIRST column is LotFrontage and the others are the
+    predictors. ``fit`` standardises the block and fits ``KNNImputer`` on the training fold;
+    ``transform`` returns the completed LotFrontage as one unscaled column.
+    """
+
+    def __init__(self, n_neighbors: int = 5):
+        self.n_neighbors = n_neighbors
+
+    def fit(self, X, y=None) -> "KNNLotFrontageImputer":
+        arr = np.asarray(X, dtype="float64")
+        self.scaler_ = StandardScaler().fit(arr)
+        self.knn_ = KNNImputer(n_neighbors=self.n_neighbors).fit(self.scaler_.transform(arr))
+        return self
+
+    def transform(self, X) -> np.ndarray:
+        arr = np.asarray(X, dtype="float64")
+        filled = self.scaler_.inverse_transform(self.knn_.transform(self.scaler_.transform(arr)))
+        return filled[:, [0]]
+
+    def get_feature_names_out(self, input_features=None) -> np.ndarray:
+        return np.array(["LotFrontage"], dtype=object)
+
+
 def _as_text(X: pd.DataFrame) -> pd.DataFrame:
     """Turn every value into text but keep NaN as NaN (so codes like MSSubClass can be one-hot)."""
     return X.apply(lambda s: s.astype(object).where(s.isna(), s.astype(str)))
@@ -71,6 +144,7 @@ def make_preprocessor(
     scale: bool = True,
     one_hot: bool = True,
     lotfrontage: str = "neighborhood_median",
+    skew_log1p: bool = False,
 ) -> ColumnTransformer:
     """Build an unfitted ColumnTransformer for the columns of ``X_sample``.
 
@@ -79,12 +153,15 @@ def make_preprocessor(
       (``one_hot=False`` instead keeps the imputed text columns as they are; useful only for
       models that handle text themselves)
     * LotFrontage -> GroupMedianImputer by Neighborhood (``lotfrontage="neighborhood_median"``)
-      or the ordinary numeric median (``"global_median"``).
+      or the ordinary numeric median (``"global_median"``) or a 5-nearest-neighbour fill on
+      lot/house size (``"knn"``, in-fold).
+    * ``skew_log1p=True`` puts a ``SkewLog1pTransformer`` before the numeric imputer. It applies to the numeric branch only,
+      not to the LotFrontage branch (which keeps its own imputation and is not log-transformed).
 
     ``X_sample`` is used ONLY to read column names and dtypes, never values.
     """
-    if lotfrontage not in ("neighborhood_median", "global_median"):
-        raise ValueError("lotfrontage must be 'neighborhood_median' or 'global_median'")
+    if lotfrontage not in ("neighborhood_median", "global_median", "knn"):
+        raise ValueError("lotfrontage must be 'neighborhood_median', 'global_median' or 'knn'")
     numeric, categorical = split_columns(X_sample)
 
     transformers = []
@@ -100,8 +177,16 @@ def make_preprocessor(
             steps.append(("scale", RobustScaler()))
         transformers.append(("lotfrontage", Pipeline(steps), ["LotFrontage", "Neighborhood"]))
 
+    if lotfrontage == "knn" and "LotFrontage" in numeric and all(c in X_sample.columns for c in KNN_LOTFRONTAGE_PREDICTORS):
+        numeric = [c for c in numeric if c != "LotFrontage"]
+        steps = [("knn", KNNLotFrontageImputer())]
+        if scale:
+            steps.append(("scale", RobustScaler()))
+        transformers.append(("lotfrontage", Pipeline(steps), ["LotFrontage", *KNN_LOTFRONTAGE_PREDICTORS]))
+
     if numeric:
-        steps = [("impute", SimpleImputer(strategy=numeric_strategy))]
+        steps = [("skew", SkewLog1pTransformer())] if skew_log1p else []
+        steps.append(("impute", SimpleImputer(strategy=numeric_strategy)))
         if scale:
             steps.append(("scale", RobustScaler()))
         transformers.append(("numeric", Pipeline(steps), numeric))
