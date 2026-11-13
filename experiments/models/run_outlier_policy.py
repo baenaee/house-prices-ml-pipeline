@@ -22,9 +22,10 @@ import _common  # noqa: E402
 from houseprices import registry  # noqa: E402
 
 POLICIES = ["keep_all", "drop_candidate_outliers", "drop_GrLivArea_gt_4000"]
+SKEW = {"skew_log1p": True}   # director ruling: linear models always use the in-fold log1p of skewed numerics
 MODELS = {
-    "Ridge": ("houseprices.models:build_ridge", {"alpha": 10.0}, "alpha=10"),
-    "ElasticNet": ("houseprices.models:build_elasticnet", {"alpha": 0.001, "l1_ratio": 0.5}, "alpha=0.001, l1_ratio=0.5"),
+    "Ridge": ("houseprices.models:build_ridge", {"alpha": 10.0, "preprocessor_kwargs": SKEW}, "alpha=10, skew_log1p"),
+    "ElasticNet": ("houseprices.models:build_elasticnet", {"alpha": 0.001, "l1_ratio": 0.5, "preprocessor_kwargs": SKEW}, "alpha=0.001, l1_ratio=0.5, skew_log1p"),
     "XGBoost": ("houseprices.models:build_xgboost", {}, "library defaults"),
 }
 Q4 = ("Auditor note Q4: drop_GrLivArea_gt_4000 also removes Ids 692 and 1183 (legitimate expensive houses) "
@@ -90,7 +91,7 @@ def main() -> None:
                         f"(paired SE {se_best:.4f}); " +
                         ("clearly worse, rejected." if decision == "reject" else "within noise of the best, so not rejected."))
             interp = f"RMSE {m:.4f} (fold std {s:.4f}). {cmp_txt} {tail}"
-            title = f"Outlier policy {pol} | {mname}"
+            title = f"Outlier policy {pol} | {mname} | {fs if len(fs) < 12 else 'all features'}"
             _common.run_and_register(
                 exp_id="", title=title,
                 hypothesis=(f"Training-fold-only row policy '{pol}' changes the CV RMSE of {mname} ({desc}) "

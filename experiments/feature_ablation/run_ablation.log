@@ -1,0 +1,65 @@
+== base
+  skip ('base', 'ridge', False): already registered as E003
+  ran ('base', 'elasticnet', False): E005 cv_mean=0.1379 (1s) -> retain
+  skip ('base', 'xgboost', False): already registered as E004
+== base+areas
+  ran ('base+areas', 'ridge', False): E006 cv_mean=0.1410 (1s) -> investigate
+  ran ('base+areas', 'elasticnet', False): E007 cv_mean=0.1379 (1s) -> investigate
+  ran ('base+areas', 'xgboost', False): E008 cv_mean=0.1453 (2s) -> retain
+== base+baths
+  ran ('base+baths', 'ridge', False): E009 cv_mean=0.1409 (1s) -> investigate
+  ran ('base+baths', 'elasticnet', False): E010 cv_mean=0.1375 (1s) -> retain
+  ran ('base+baths', 'xgboost', False): E011 cv_mean=0.1432 (2s) -> retain
+== base+ages
+  ran ('base+ages', 'ridge', False): E012 cv_mean=0.1409 (1s) -> investigate
+  ran ('base+ages', 'elasticnet', False): E013 cv_mean=0.1379 (2s) -> reject
+  ran ('base+ages', 'xgboost', False): E014 cv_mean=0.1466 (1s) -> investigate
+== base+quality_interactions
+  ran ('base+quality_interactions', 'ridge', False): E015 cv_mean=0.1385 (1s) -> retain
+  ran ('base+quality_interactions', 'elasticnet', False): E016 cv_mean=0.1350 (1s) -> retain
+  ran ('base+quality_interactions', 'xgboost', False): E017 cv_mean=0.1388 (2s) -> retain
+== base+ordinal_quality
+  ran ('base+ordinal_quality', 'ridge', False): E018 cv_mean=0.1412 (1s) -> investigate
+  ran ('base+ordinal_quality', 'elasticnet', False): E019 cv_mean=0.1378 (1s) -> investigate
+  ran ('base+ordinal_quality', 'xgboost', False): E020 cv_mean=0.1470 (1s) -> retain
+== base+areas+baths+ages+quality_interactions+ordinal_quality
+  ran ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'ridge', False): E021 cv_mean=0.1387 (1s) -> retain
+  ran ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'elasticnet', False): E022 cv_mean=0.1350 (1s) -> retain
+  ran ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'xgboost', False): E023 cv_mean=0.1356 (1s) -> retain
+== base+baths+ages+quality_interactions+ordinal_quality
+  ran ('base+baths+ages+quality_interactions+ordinal_quality', 'ridge', False): E024 cv_mean=0.1390 (1s) -> retain
+  ran ('base+baths+ages+quality_interactions+ordinal_quality', 'elasticnet', False): E025 cv_mean=0.1354 (2s) -> retain
+  ran ('base+baths+ages+quality_interactions+ordinal_quality', 'xgboost', False): E026 cv_mean=0.1368 (2s) -> retain
+== base+areas+ages+quality_interactions+ordinal_quality
+  ran ('base+areas+ages+quality_interactions+ordinal_quality', 'ridge', False): E027 cv_mean=0.1387 (1s) -> investigate
+  ran ('base+areas+ages+quality_interactions+ordinal_quality', 'elasticnet', False): E028 cv_mean=0.1353 (1s) -> retain
+  ran ('base+areas+ages+quality_interactions+ordinal_quality', 'xgboost', False): E029 cv_mean=0.1376 (2s) -> retain
+== base+areas+baths+quality_interactions+ordinal_quality
+  ran ('base+areas+baths+quality_interactions+ordinal_quality', 'ridge', False): E030 cv_mean=0.1387 (1s) -> investigate
+  ran ('base+areas+baths+quality_interactions+ordinal_quality', 'elasticnet', False): E031 cv_mean=0.1350 (1s) -> retain
+  ran ('base+areas+baths+quality_interactions+ordinal_quality', 'xgboost', False): E032 cv_mean=0.1335 (2s) -> investigate
+== base+areas+baths+ages+ordinal_quality
+  ran ('base+areas+baths+ages+ordinal_quality', 'ridge', False): E033 cv_mean=0.1413 (1s) -> retain
+  ran ('base+areas+baths+ages+ordinal_quality', 'elasticnet', False): E034 cv_mean=0.1376 (1s) -> retain
+  ran ('base+areas+baths+ages+ordinal_quality', 'xgboost', False): E035 cv_mean=0.1442 (2s) -> retain
+== base+areas+baths+ages+quality_interactions
+  ran ('base+areas+baths+ages+quality_interactions', 'ridge', False): E036 cv_mean=0.1383 (1s) -> investigate
+  ran ('base+areas+baths+ages+quality_interactions', 'elasticnet', False): E037 cv_mean=0.1345 (2s) -> reject
+  ran ('base+areas+baths+ages+quality_interactions', 'xgboost', False): E038 cv_mean=0.1368 (2s) -> investigate
+
+Pivot: feature_set x model -> cv_mean (RMSE on log1p, lower is better)
+                                                              ridge  elasticnet  xgboost
+feature_set                                                                             
+base                                                        0.14088     0.13786  0.14868
+base+ages                                                   0.14094     0.13789  0.14663
+base+areas                                                  0.14097     0.13792  0.14525
+base+areas+ages+quality_interactions+ordinal_quality        0.13871     0.13527  0.13763
+base+areas+baths+ages+ordinal_quality                       0.14130     0.13755  0.14422
+base+areas+baths+ages+quality_interactions                  0.13834     0.13445  0.13683
+base+areas+baths+ages+quality_interactions+ordinal_quality  0.13871     0.13503  0.13561
+base+areas+baths+quality_interactions+ordinal_quality       0.13867     0.13505  0.13354
+base+baths                                                  0.14086     0.13753  0.14316
+base+baths+ages+quality_interactions+ordinal_quality        0.13897     0.13540  0.13684
+base+ordinal_quality                                        0.14120     0.13778  0.14697
+base+quality_interactions                                   0.13854     0.13496  0.13881
+saved C:\Users\Enrique Baena\Desktop\HousePricingKaglle\experiments\feature_ablation\ablation_20261113_113850.csv  (elapsed 0.7 min)

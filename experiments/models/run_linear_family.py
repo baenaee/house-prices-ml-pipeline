@@ -26,6 +26,7 @@ import _common  # noqa: E402
 from houseprices import validation  # noqa: E402
 
 SCALERS = ["robust", "standard"]
+SKEW = {"skew_log1p": True}   # director ruling: every linear grid point uses the in-fold log1p of skewed numerics
 FAMILIES = {
     "Ridge": ("houseprices.models:build_ridge", [{"alpha": float(a)} for a in np.logspace(-1, 2.5, 15)]),
     "Lasso": ("houseprices.models:build_lasso", [{"alpha": float(a)} for a in np.logspace(-4.5, -1.5, 13)]),
@@ -40,7 +41,7 @@ def run_grid(feature_set: str, row_filter: str, thin: int = 1) -> pd.DataFrame:
     for fam, (builder, grid) in FAMILIES.items():
         for scaler in SCALERS:
             for params in grid[::thin]:
-                kwargs = {**params, "scaler": scaler}
+                kwargs = {**params, "scaler": scaler, "preprocessor_kwargs": SKEW}
                 with warnings.catch_warnings(record=True) as caught:
                     warnings.simplefilter("always")
                     r = _common.run_cv(builder, kwargs, feature_set, row_filter)
@@ -78,7 +79,7 @@ def as_result(best: pd.Series, folds: np.ndarray) -> validation.CVResult:
 def register_best(fam: str, builder: str, g: pd.DataFrame, fs: str, flt: str, out_name: str) -> None:
     best = g.loc[g["cv_mean"].idxmin()]
     params, scaler = json.loads(best["params"]), best["scaler"]
-    kwargs = {**params, "scaler": scaler}
+    kwargs = {**params, "scaler": scaler, "preprocessor_kwargs": SKEW}
     eid = _common.find_registered(builder, kwargs, fs, flt)
     if eid:
         print(f"[skip] best {fam} {kwargs} already registered as {eid}")

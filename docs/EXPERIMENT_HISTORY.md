@@ -76,3 +76,41 @@ Interpretation (director):
 - Numeric-only OLS removes 60 % of that error (0.160). Adding one-hot categoricals with L2 shrinkage (Ridge alpha=10, untuned) improves to 0.141; default XGBoost on the same inputs gives 0.149 with a visibly smaller fold spread (0.019 vs 0.032).
 - Fold 2 is the hard fold for every linear model (Ridge 0.185 vs 0.112–0.125 elsewhere); the two EDA outliers (Ids 524, 1299) are development rows and fall into validation there. This is exactly the case the training-fold-only outlier policy (C2) is designed to measure, and it is why selection decisions must use paired per-fold differences, not means alone.
 - Decisions: all four retained as reference levels. Nothing is tuned yet; the Ridge alpha and the boosters are refined in C4/C5.
+
+### 2026-11-13 — E005–E048: feature ablations (C1), skew correction, LotFrontage imputation (C3)
+
+Run by Agent A (feature-researcher) with `experiments/feature_ablation/run_ablation.py` (then `--skew`) and `run_lotfrontage.py`; wall time about one minute in total (1–2 s per 5-fold CV). Models: Ridge alpha=10, ElasticNet(alpha=0.001, l1_ratio=0.5), XGBoost defaults; feature set "base" plus named groups; keep_all; KFold(5, shuffle, seed 42). E042 reproduces via `evaluate` (0.12562). Raw tables: `experiments/feature_ablation/ablation_20261113_113850.csv`, `ablation_20261113_113903.csv`.
+
+| feature set | Ridge | ElasticNet | XGBoost |
+|---|---|---|---|
+| base | 0.14088 (E003) | 0.13786 (E005) | 0.14868 (E004) |
+| base+areas | 0.14097 | 0.13792 | 0.14525 |
+| base+baths | 0.14086 | 0.13753 | 0.14316 |
+| base+ages | 0.14094 | 0.13789 | 0.14663 |
+| base+quality_interactions | 0.13854 | 0.13496 | 0.13881 |
+| base+ordinal_quality | 0.14120 | 0.13778 | 0.14697 |
+| all = base+areas+baths+ages+quality_interactions+ordinal_quality (E021–E023) | 0.13871 | 0.13503 | 0.13562 |
+| all minus areas | 0.13897 | 0.13540 | 0.13684 |
+| all minus baths | 0.13871 | 0.13527 | 0.13763 |
+| all minus ages | 0.13867 | 0.13505 | 0.13354 |
+| all minus quality_interactions | 0.14130 | 0.13755 | 0.14422 |
+| all minus ordinal_quality | 0.13834 | 0.13445 | 0.13683 |
+| base, skew_log1p in-fold (E039, E040) | 0.13192 | 0.12845 | n/a |
+| all, skew_log1p in-fold (E041, E042) | 0.13042 | 0.12562 | n/a |
+
+LotFrontage imputation (base, keep_all): neighborhood median 0.14088 / 0.14868 (Ridge / XGBoost, E043, E046); global median 0.14099 / 0.14701 (E044, E047); KNN on five house-size predictors, fit in-fold, 0.14048 / 0.14900 (E045, E048).
+
+Interpretation (Agent A, confirmed by the director):
+- `quality_interactions` (OverallQual x GrLivArea, OverallQual x TotalSF) is the group that matters: removing it from "all" is the only removal that hurts every model (by 0.0025–0.009). The other groups move scores by 0.003 or less at default hyper-parameters.
+- `ordinal_quality` does not help on its own and its removal from "all" ties or slightly improves every model (0.0004–0.0012), within one paired standard error for Ridge and XGBoost.
+- The in-fold log1p of skewed non-negative numeric columns is the largest single gain for the linear models (about 0.009 on both base and all). Trees are invariant to monotone transforms, so it is not applied to them.
+- The anomaly flags are constant (all zero) in the training data; the anomalies exist only in test rows (Ids 2593, 2550, 1877), so `base+anomaly_flags` cannot differ from base and was excluded from the run.
+- LotFrontage: no imputation method is clearly better; all Ridge differences are at or below 0.0005 and the XGBoost spread (0.002) is within fold noise.
+- Caveat: the XGBoost column uses default hyper-parameters; feature gains for trees may change after tuning.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D11 | Working feature set for the rest of the programme is "all" (`base+areas+baths+ages+quality_interactions+ordinal_quality`) | "all minus ordinal_quality" (best linear at default alpha), "all minus ages" (best XGBoost at defaults) | Every leave-one-out variant is within about 0.001 of "all" except the removal of quality_interactions, which hurts. Model-specific pruning at untuned hyper-parameters would be fitting to fold noise; the richest set is kept and the ordinal_quality question is re-examined on the finalists under RepeatedKFold 5x3. |
+| D12 | Linear models (Ridge, Lasso, ElasticNet) always use `preprocessor_kwargs={"skew_log1p": True}`; trees never do | apply to all models; apply to none | Gains of about 0.009 for both linear models, consistent across base and all; the transformer is fit in-fold (column selection learned from training rows only, verified by Agent D in VALIDATION_AUDIT section 5.4). Trees are invariant to monotone transforms, so applying it there would only add cost. |
+| D13 | LotFrontage keeps the neighbourhood-median in-fold imputation (the original notebook's semantic choice) | global median; KNN | No method differs by more than 0.002 and none exceeds the paired standard error; the default is kept because it is the documented choice of the original cleaning log and costs nothing. |
+| D14 | Registry decisions "retain/reject/investigate" from the runners use a one-paired-standard-error rule on 5 folds and are provisional | decide on means | Agent D's note: differences near 0.001 are noise at 5 folds; finalists are confirmed with RepeatedKFold 5x3 before anything is frozen. |

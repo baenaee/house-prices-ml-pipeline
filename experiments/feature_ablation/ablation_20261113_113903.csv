@@ -1,0 +1,15 @@
+feature_set,ridge,elasticnet,xgboost
+base,0.140883,0.137862,0.148681
+base+ages,0.140941,0.137891,0.146628
+base+areas,0.140973,0.137918,0.145253
+base+areas+ages+quality_interactions+ordinal_quality,0.138709,0.135271,0.13763
+base+areas+baths+ages+ordinal_quality,0.141299,0.137552,0.14422
+base+areas+baths+ages+quality_interactions,0.138338,0.134454,0.136826
+base+areas+baths+ages+quality_interactions+ordinal_quality,0.138708,0.135032,0.135615
+base+areas+baths+ages+quality_interactions+ordinal_quality|skew_log1p,0.13042370241326148,0.12562159919412266,
+base+areas+baths+quality_interactions+ordinal_quality,0.13867,0.135049,0.133541
+base+baths,0.140859,0.137528,0.143161
+base+baths+ages+quality_interactions+ordinal_quality,0.138972,0.135401,0.136844
+base+ordinal_quality,0.141204,0.137782,0.146971
+base+quality_interactions,0.138538,0.134959,0.138809
+base|skew_log1p,0.131916695059769,0.12845393986525794,

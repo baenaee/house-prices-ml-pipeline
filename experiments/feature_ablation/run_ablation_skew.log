@@ -1,0 +1,72 @@
+== base
+  skip ('base', 'ridge', False): already registered as E003
+  skip ('base', 'elasticnet', False): already registered as E005
+  skip ('base', 'xgboost', False): already registered as E004
+== base+areas
+  skip ('base+areas', 'ridge', False): already registered as E006
+  skip ('base+areas', 'elasticnet', False): already registered as E007
+  skip ('base+areas', 'xgboost', False): already registered as E008
+== base+baths
+  skip ('base+baths', 'ridge', False): already registered as E009
+  skip ('base+baths', 'elasticnet', False): already registered as E010
+  skip ('base+baths', 'xgboost', False): already registered as E011
+== base+ages
+  skip ('base+ages', 'ridge', False): already registered as E012
+  skip ('base+ages', 'elasticnet', False): already registered as E013
+  skip ('base+ages', 'xgboost', False): already registered as E014
+== base+quality_interactions
+  skip ('base+quality_interactions', 'ridge', False): already registered as E015
+  skip ('base+quality_interactions', 'elasticnet', False): already registered as E016
+  skip ('base+quality_interactions', 'xgboost', False): already registered as E017
+== base+ordinal_quality
+  skip ('base+ordinal_quality', 'ridge', False): already registered as E018
+  skip ('base+ordinal_quality', 'elasticnet', False): already registered as E019
+  skip ('base+ordinal_quality', 'xgboost', False): already registered as E020
+== base+areas+baths+ages+quality_interactions+ordinal_quality
+  skip ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'ridge', False): already registered as E021
+  skip ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'elasticnet', False): already registered as E022
+  skip ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'xgboost', False): already registered as E023
+== base+baths+ages+quality_interactions+ordinal_quality
+  skip ('base+baths+ages+quality_interactions+ordinal_quality', 'ridge', False): already registered as E024
+  skip ('base+baths+ages+quality_interactions+ordinal_quality', 'elasticnet', False): already registered as E025
+  skip ('base+baths+ages+quality_interactions+ordinal_quality', 'xgboost', False): already registered as E026
+== base+areas+ages+quality_interactions+ordinal_quality
+  skip ('base+areas+ages+quality_interactions+ordinal_quality', 'ridge', False): already registered as E027
+  skip ('base+areas+ages+quality_interactions+ordinal_quality', 'elasticnet', False): already registered as E028
+  skip ('base+areas+ages+quality_interactions+ordinal_quality', 'xgboost', False): already registered as E029
+== base+areas+baths+quality_interactions+ordinal_quality
+  skip ('base+areas+baths+quality_interactions+ordinal_quality', 'ridge', False): already registered as E030
+  skip ('base+areas+baths+quality_interactions+ordinal_quality', 'elasticnet', False): already registered as E031
+  skip ('base+areas+baths+quality_interactions+ordinal_quality', 'xgboost', False): already registered as E032
+== base+areas+baths+ages+ordinal_quality
+  skip ('base+areas+baths+ages+ordinal_quality', 'ridge', False): already registered as E033
+  skip ('base+areas+baths+ages+ordinal_quality', 'elasticnet', False): already registered as E034
+  skip ('base+areas+baths+ages+ordinal_quality', 'xgboost', False): already registered as E035
+== base+areas+baths+ages+quality_interactions
+  skip ('base+areas+baths+ages+quality_interactions', 'ridge', False): already registered as E036
+  skip ('base+areas+baths+ages+quality_interactions', 'elasticnet', False): already registered as E037
+  skip ('base+areas+baths+ages+quality_interactions', 'xgboost', False): already registered as E038
+== skew pass (linear models only)
+  ran ('base', 'ridge', True): E039 cv_mean=0.1319 (1s) -> retain
+  ran ('base', 'elasticnet', True): E040 cv_mean=0.1285 (0s) -> retain
+  ran ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'ridge', True): E041 cv_mean=0.1304 (1s) -> retain
+  ran ('base+areas+baths+ages+quality_interactions+ordinal_quality', 'elasticnet', True): E042 cv_mean=0.1256 (1s) -> retain
+
+Pivot: feature_set x model -> cv_mean (RMSE on log1p, lower is better)
+                                                                         ridge  elasticnet  xgboost
+feature_set                                                                                        
+base                                                                   0.14088     0.13786  0.14868
+base+ages                                                              0.14094     0.13789  0.14663
+base+areas                                                             0.14097     0.13792  0.14525
+base+areas+ages+quality_interactions+ordinal_quality                   0.13871     0.13527  0.13763
+base+areas+baths+ages+ordinal_quality                                  0.14130     0.13755  0.14422
+base+areas+baths+ages+quality_interactions                             0.13834     0.13445  0.13683
+base+areas+baths+ages+quality_interactions+ordinal_quality             0.13871     0.13503  0.13562
+base+areas+baths+ages+quality_interactions+ordinal_quality|skew_log1p  0.13042     0.12562      NaN
+base+areas+baths+quality_interactions+ordinal_quality                  0.13867     0.13505  0.13354
+base+baths                                                             0.14086     0.13753  0.14316
+base+baths+ages+quality_interactions+ordinal_quality                   0.13897     0.13540  0.13684
+base+ordinal_quality                                                   0.14120     0.13778  0.14697
+base+quality_interactions                                              0.13854     0.13496  0.13881
+base|skew_log1p                                                        0.13192     0.12845      NaN
+saved C:\Users\Enrique Baena\Desktop\HousePricingKaglle\experiments\feature_ablation\ablation_20261113_113903.csv  (elapsed 0.1 min)

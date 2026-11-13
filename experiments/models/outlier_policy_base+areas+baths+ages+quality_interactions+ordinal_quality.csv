@@ -1,0 +1,4 @@
+policy,Ridge,ElasticNet,XGBoost
+keep_all,0.13042,0.12562,0.13561
+drop_candidate_outliers,0.1348,0.13205,0.14062
+drop_GrLivArea_gt_4000,0.13603,0.13417,0.13641
