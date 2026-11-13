@@ -178,3 +178,49 @@ def test_diversity_report_and_correlation(xy):
     rep = ensemble.diversity_report(oof, y)
     assert list(rep.index) == ["ridge", "tree", "knn"]
     assert (rep["rmse"] > 0).all()
+
+
+# (f) F17 typed diagnostics and spec builders ------------------------------------------
+
+
+def test_optimistic_scores_are_typed_and_unregistrable(xy):
+    X, y = xy
+    s = ensemble.in_sample_stack_score(bases(), Ridge(), X, y)
+    o = ensemble.optimistic_oof_stack_score(bases(), Ridge(), X, y)
+    for score in (s, o):
+        assert isinstance(score, ensemble.OptimisticScore) and isinstance(score, float)
+        assert score.registerable is False and bool(score) is True
+        assert not hasattr(score, "fold_scores") and not hasattr(score, "mean")
+    assert bool(ensemble.OptimisticScore(0.0, "x")) is True
+
+
+SPECS = [
+    {"builder": "sklearn.linear_model:Ridge", "builder_kwargs": {"alpha": 1.0}},
+    {"builder": "sklearn.tree:DecisionTreeRegressor", "builder_kwargs": {"max_depth": 3, "random_state": 0}},
+]
+
+
+def test_spec_builders_are_json_serialisable_and_work(xy):
+    import json
+
+    X, y = xy
+    json.dumps(SPECS)
+    blend = ensemble.build_blend_from_specs(SPECS).fit(X, y)
+    assert blend.weights_.sum() == pytest.approx(1.0) and (blend.weights_ >= 0).all()
+    stack = ensemble.build_stack_from_specs(SPECS, inner_cv_splits=3).fit(X, y)
+    assert stack.predict(X).shape == (len(X),) and stack.inner_cv_splits == 3
+    avg = ensemble.build_average_from_specs(SPECS).fit(X, y)
+    assert avg.weights_.tolist() == [0.5, 0.5]
+    manual = 0.5 * Ridge(alpha=1.0).fit(X, y).predict(X) + 0.5 * DecisionTreeRegressor(
+        max_depth=3, random_state=0).fit(X, y).predict(X)
+    np.testing.assert_allclose(avg.predict(X), manual)
+    with pytest.raises(ValueError):
+        ensemble.build_blend_from_specs([])
+
+
+def test_spec_blend_matches_path_blend(xy):
+    X, y = xy
+    a = ensemble.build_blend_from_specs(SPECS).fit(X, y)
+    b = ensemble.build_blend(["sklearn.linear_model:Ridge", "sklearn.tree:DecisionTreeRegressor"],
+                             [{"alpha": 1.0}, {"max_depth": 3, "random_state": 0}]).fit(X, y)
+    np.testing.assert_allclose(a.predict(X), b.predict(X))

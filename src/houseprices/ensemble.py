@@ -1,4 +1,4 @@
-﻿"""Ensembles that are safe to evaluate: blending and NESTED stacking.
+"""Ensembles that are safe to evaluate: blending and NESTED stacking.
 
 Why this module exists
 ----------------------
@@ -233,10 +233,35 @@ class NestedStackingRegressor(BaseEstimator, RegressorMixin):
 # ---------------------------------------------------------------------------
 
 
+class OptimisticScore(float):
+    """A float that is explicitly NOT a cross-validation result (audit F17).
+
+    It behaves like a float for printing and comparisons, but it has no ``fold_scores`` or
+    ``mean``, so ``_common.run_and_register(result=...)`` raises AttributeError on it, and it is
+    always truthy so a 0.0 score can never trigger the ``result or run_cv(...)`` fallback.
+    Never register, report or use these numbers as evidence of performance.
+    """
+
+    registerable = False
+
+    def __new__(cls, value: float, kind: str):
+        obj = super().__new__(cls, value)
+        obj.kind = kind
+        return obj
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return f"OptimisticScore({float(self):.6f}, kind={self.kind!r}, NEVER REGISTER)"
+
+
 def optimistic_oof_stack_score(
     base_estimators: Sequence[NamedEstimator], meta_estimator: BaseEstimator, X, y_log, cv=None
-) -> float:
-    """OPTIMISTIC: fit the meta-learner on all OOF rows and score it on those same rows."""
+) -> OptimisticScore:
+    """OPTIMISTIC: fit the meta-learner on all OOF rows and score it on those same rows.
+
+    Returns an :class:`OptimisticScore`; never registered (see its docstring)."""
     cv = cv if cv is not None else validation.make_cv()
     y = np.asarray(y_log, dtype=float)
     oof = np.full((len(y), len(base_estimators)), np.nan)
@@ -244,19 +269,19 @@ def optimistic_oof_stack_score(
         for j, (_, est) in enumerate(base_estimators):
             oof[va, j] = _fit_predict(est, _take(X, tr), y[tr], _take(X, va))
     meta = clone(meta_estimator).fit(oof, y)
-    return validation.rmse_log(y, meta.predict(oof))
+    return OptimisticScore(validation.rmse_log(y, meta.predict(oof)), "oof_meta_in_sample")
 
 
 def in_sample_stack_score(
     base_estimators: Sequence[NamedEstimator], meta_estimator: BaseEstimator, X, y_log
-) -> float:
+) -> OptimisticScore:
     """VERY OPTIMISTIC: bases and meta both fit and scored on the same rows (the leak
-    nested stacking exists to prevent)."""
+    nested stacking exists to prevent). Returns an :class:`OptimisticScore`; never registered."""
     y = np.asarray(y_log, dtype=float)
     fitted = _fit_all(base_estimators, X, y)
     feats = _predict_matrix(fitted, X)
     meta = clone(meta_estimator).fit(feats, y)
-    return validation.rmse_log(y, meta.predict(feats))
+    return OptimisticScore(validation.rmse_log(y, meta.predict(feats)), "bases_and_meta_in_sample")
 
 
 # ---------------------------------------------------------------------------
@@ -331,3 +356,42 @@ def build_stack(
         passthrough=passthrough,
     )
 
+
+# ---------------------------------------------------------------------------
+# JSON-serialisable builders: bases are given as specs {"builder": ..., "builder_kwargs": ...}
+# so a registry record holds everything needed to rebuild the ensemble.
+# ---------------------------------------------------------------------------
+
+
+def _build_from_specs(specs: list[dict]) -> list[NamedEstimator]:
+    if not specs:
+        raise ValueError("need at least one base spec")
+    return [
+        (f"{sp['builder'].split(':')[-1]}_{i}", data.resolve_callable(sp["builder"])(**sp.get("builder_kwargs", {})))
+        for i, sp in enumerate(specs)
+    ]
+
+
+def build_blend_from_specs(
+    specs: list[dict], weights: list[float] | None = None, inner_cv_splits: int = config.CV_N_SPLITS
+) -> BlendingRegressor:
+    """Blend of base specs; ``weights=None`` learns non-negative sum-to-one weights inside fit."""
+    return BlendingRegressor(_build_from_specs(specs), weights=weights, inner_cv_splits=inner_cv_splits)
+
+
+def build_stack_from_specs(
+    specs: list[dict],
+    meta_alpha: float = 1.0,
+    inner_cv_splits: int = config.CV_N_SPLITS,
+    passthrough: bool = False,
+) -> NestedStackingRegressor:
+    """Nested stack (Ridge meta-learner) of base specs."""
+    return NestedStackingRegressor(
+        _build_from_specs(specs), Ridge(alpha=meta_alpha), inner_cv_splits=inner_cv_splits, passthrough=passthrough
+    )
+
+
+def build_average_from_specs(specs: list[dict]) -> BlendingRegressor:
+    """Naive reference: equal-weight average of the bases (nothing is learned)."""
+    n = len(specs)
+    return BlendingRegressor(_build_from_specs(specs), weights=[1.0 / n] * n)
