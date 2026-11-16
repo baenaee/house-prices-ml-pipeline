@@ -1,4 +1,4 @@
-DRAFT - status: complete except section 8 (Stage 2 results, placeholders marked `<<STAGE2: ...>>` for the director). Sections: 1 decision trees, 2 gradient boosting, 3 XGBoost / LightGBM / CatBoost, 4 Optuna and TPE, 5 the staged budget and the Stage 1 table, 6 the real code, 7 verification notes, 8 Stage 2 results, 9 self-check questions with answers.
+DRAFT - status: complete (Stage 2 results filled in from E066, E067 and ruling D21). Sections: 1 decision trees, 2 gradient boosting, 3 XGBoost / LightGBM / CatBoost, 4 Optuna and TPE, 5 the staged budget and the Stage 1 table, 6 the real code, 7 verification notes, 8 Stage 2 results, 9 self-check questions with answers.
 
 # Study guide, part 2c: boosted trees and Optuna tuning
 
@@ -268,15 +268,54 @@ def stage2_rule(values, reference):
 
 ---
 
-## 8. Stage 2 results (to be filled by the director)
+## 8. Stage 2 results (E066, E067, ruling D21)
 
-Stage 2 continues the CatBoost and LightGBM studies from 25 to 75 trials (D19, cap 60 min, command in the checkpoint section 4). XGBoost did not get Stage 2.
+Stage 2 continued the CatBoost and LightGBM studies from 25 to 75 trials (D19, cap 60 min, `--stage 2`). XGBoost did not get Stage 2. Numbers below come from `stage1_summary.json`, the two trial CSVs (now 75 rows each), the logs and registry records E066 and E067, plus documentation measurements from the CSVs. The same seeded folds were used as in Stage 1, so the scores are comparable.
 
-- CatBoost best after 75 trials: <<STAGE2: CatBoost best CV RMSE, trial number, parameters, registry id if registered>>
-- LightGBM best after 75 trials: <<STAGE2: LightGBM best CV RMSE, trial number, parameters, registry id if registered>>
-- Did either beat its Stage 1 score by more than 0.003? <<STAGE2: yes/no per booster, with the difference>>. The expected answer under hypothesis H1 is "no for CatBoost": E060 has a spread of 0.0028 between trials and was still dropping only slowly (0.12052 at trial 5, 0.11975 at 15, 0.11946 at 25).
-- Minutes used: <<STAGE2: wall minutes for CatBoost, for LightGBM, and the new total against the 3 h cap (38.8 min before Stage 2)>>
-- Reading to write after the numbers arrive: <<STAGE2: did TPE move toward the search-space edges noted in section 5.3, and is the improvement inside the 0.003 optimism band?>>
+### 8.1 Results
+
+| | Stage 1 (25 trials) | Stage 2 (75 trials) | change | registered | wall time of Stage 2 |
+|---|---|---|---|---|---|
+| CatBoost | 0.11946 (E060) | **0.11807** (trial 43) | -0.0014 | E066 | 30.0 min |
+| LightGBM | 0.12442 (E059) | **0.12173** (trial 35) | -0.0027 | E067 | 3.2 min |
+
+Best parameters.
+
+- E066 CatBoost: learning_rate 0.0167, iterations 2000, depth 6, l2_leaf_reg 1.41, subsample 0.587, rsm 0.813. Fold scores 0.1039, 0.1323, 0.1391, 0.1023, 0.1128; fold std 0.0167.
+- E067 LightGBM: learning_rate 0.0169, n_estimators 2000, num_leaves 8, subsample 0.753 (subsample_freq 1), colsample_bytree 0.891, reg_alpha 0.153, reg_lambda 0.533, min_child_samples 5. Fold std 0.0185.
+
+**Did either beat Stage 1 by more than 0.003? No.** CatBoost improved by 0.0014 and LightGBM by 0.0027, both inside the 0.003 noise band, so neither is a win by the project rule. This is hypothesis H1 (Stage 2 gains less than 0.003) confirmed. A second reason for caution: the best of 75 is selected from three times as many trials as the best of 25, so its optimism is, if anything, larger than the +0.002 to +0.003 measured for Stage 1; part of the 0.0014 may be selection, not skill. Both models are carried forward as ensemble bases (D21) because the choice among bases is re-checked on the fresh seed-7 folds anyway. LightGBM still trails CatBoost by 0.0037, a gap that does exceed the band.
+
+**Minutes.** Stage 2 took 33.19 min (30.01 CatBoost, 3.15 LightGBM). With the 38.8 min already used (10.8 Stage 1 plus 28.0 for E065) the total is about 72 min of the 180 min cap.
+
+### 8.2 How the search behaved
+
+How many of the 50 new trials beat the Stage 1 best: 12 for CatBoost (below 0.119457) and 24 for LightGBM (below 0.124416). The best-so-far curves:
+
+| trial count | 25 | 35 | 45 | 55 to 75 |
+|---|---|---|---|---|
+| CatBoost best-so-far | 0.11946 | 0.11907 | 0.11807 | 0.11807 (flat) |
+| LightGBM best-so-far | 0.12442 | 0.12278 | 0.12173 | 0.12173 (flat) |
+
+Both bests were found by trial 45 and nothing improved over the next 30 trials, so `improving_last_10` is false for both. (`stage1_summary.json` still shows `stage2_recommended = true` for CatBoost, only because its gap to the registry reference 0.118066, the ensemble E061, is about 0.000006. The rule has no Stage 3 and D21 closes tuning.)
+
+**TPE concentrates.** Spread of the objective over blocks of 25 trials (standard deviation, then median):
+
+| block | CatBoost std / median | LightGBM std / median |
+|---|---|---|
+| trials 0 to 24 | 0.00275 / 0.12133 | 0.00695 / 0.12921 |
+| trials 25 to 49 | 0.00061 / 0.11985 | 0.00188 / 0.12514 |
+| trials 50 to 74 | 0.00047 / 0.11992 | 0.00160 / 0.12383 |
+
+The CatBoost std fell about six-fold: the last 50 trials all lie between 0.1181 and 0.1210, and 58 of the 75 trials are within 0.003 of the best. That is a plateau, not a peak: many different settings in the same region score the same to within the noise. The shift in the parameters from the first 25 trials to the last 25 (medians): CatBoost learning rate 0.038 to 0.015, iterations 1,500 to 1,900, l2_leaf_reg 2.6 to 1.26, rsm 0.69 to 0.81, depth 5 to 6. LightGBM: num_leaves 15 to 10, min_child_samples 12 to 6, colsample 0.81 to 0.93, subsample 0.79 to 0.72, rounds 1,600 to 1,800. The direction is the same in both: slower, a bit more capacity per tree, weaker penalties, fewer rows per leaf.
+
+### 8.3 The search-space edges
+
+Both Stage 2 bests sit on the upper bound of the tree-count range (2,000) with a learning rate of 0.017, and the five best LightGBM trials all have `min_child_samples = 5`, the floor of its range (best trial: 8 leaves, 7 is the leaf floor). Counting trials (documentation measurement): iterations or n_estimators at 2,000 in 12 of 75 CatBoost trials and 16 of 75 LightGBM trials (7 each among the last 25); `min_child_samples = 5` in 16 of 75 LightGBM trials (6 of the last 25); learning rate within 25 percent of its floor 0.01 in 9 (CatBoost) and 10 (LightGBM) trials.
+
+What this implies. TPE cannot propose outside the box, so the true optimum along these axes may lie beyond it: with a smaller learning rate it would use more than 2,000 rounds, and with a smaller leaf limit it would allow leaves of fewer than 5 rows. The pattern "lower rate, more rounds" is the same trade described in section 2.3: the product learning rate x rounds is about 33 for both E066 and E067 (0.0167 x 2000 and 0.0169 x 2000), against 59 for E060, so the step budget has been kept but spread over smaller steps. A floor on `min_child_samples` at 5 pushing against its bound means LightGBM wants leaves that nearly isolate single houses, possibly a sign that it is fitting fine structure with little penalty (my interpretation, not tested).
+
+Why stop anyway. First, the returns have fallen sharply: 50 extra trials bought 0.0014 and 0.0027, and the last 30 bought nothing. Second, widening the box would be a new search (new bounds, a new study, a new cost of 2,000+ rounds per trial for CatBoost at about 37 s a CV), and any further gain would be of the order of the gain just seen, i.e. below the 0.003 line and below the selection optimism of 0.002 to 0.003, so it could not be told apart from noise on these five folds. Third, the plateau (58 of 75 CatBoost trials within 0.003 of the best) says the model is insensitive in this region, so the hyper-parameters are not where the remaining error lives; the remaining error is concentrated in a few houses (Ids 1299, 524, 1183, 692; interpretability analysis of E060) and in the cheapest and most expensive deciles. Ruling D21 therefore closes tuning, and the honest statement for an interview is: "both tuned bests touch a boundary of the search space; we know that, we judged the likely gain to be smaller than the noise, and we spent the remaining budget on ensembles and the fresh-fold check instead."
 
 ---
 

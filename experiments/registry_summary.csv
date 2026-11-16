@@ -1,6 +1,13 @@
 id,timestamp,agent,title,feature_set,train_row_filter,cv_n_splits,cv_n_repeats,cv_mean,cv_std,fit_seconds,decision,config_hash
+E068,2026-11-16 23:49:28,ensemble-researcher,Ensemble: average of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.117344,0.019324,30.13,investigate,f67a0771606a
+E072,2026-11-17 00:03:02,ensemble-researcher,Ensemble: stack of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.117479,0.018957,169.57,investigate,f3a0f628ff74
+E069,2026-11-16 23:52:36,ensemble-researcher,Ensemble: blend of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118022,0.01937,187.95,investigate,dbbdb3455183
 E061,2026-11-13 12:04:34,ensemble-researcher,Ensemble: average of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118066,0.019848,19.12,investigate,6875c4cf63ec
 E066,2026-11-16 23:47:46,model-researcher,Optuna stage 2: catboost best of 75 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118072,0.016743,36.93,retain,be58905cb40a
+E073,2026-11-17 00:06:46,ensemble-researcher,Ensemble: stack of all (ridge+lasso+elasticnet+xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118464,0.020041,223.86,investigate,8b1b8d681b60
+E075,2026-11-17 00:10:24,ensemble-researcher,Ensemble: stack of tree_only (xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118582,0.017734,208.04,investigate,13645d6c328a
+E071,2026-11-17 00:00:13,ensemble-researcher,Ensemble: blend of tree_only (xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118722,0.017618,221.02,investigate,9e3bee3b2a8f
+E070,2026-11-16 23:56:32,ensemble-researcher,Ensemble: blend of all (ridge+lasso+elasticnet+xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118937,0.020196,235.63,investigate,1620e0dd5e07
 E062,2026-11-13 12:06:56,ensemble-researcher,Ensemble: blend of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119021,0.01965,142.49,investigate,be95c25502af
 E063,2026-11-13 12:10:06,ensemble-researcher,Ensemble: blend of all (ridge+lasso+elasticnet+xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119427,0.020123,189.41,investigate,1218a99843f1
 E060,2026-11-13 11:59:04,model-researcher,Optuna stage 1: catboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119457,0.016988,18.82,retain,c8cad1c5c963
@@ -12,6 +19,7 @@ E056,2026-11-13 11:48:10,model-researcher,Lasso best of grid (robust scaler),bas
 E057,2026-11-13 11:48:10,model-researcher,ElasticNet best of grid (robust scaler),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125549,0.023005,0.74,retain,42b9c741b462
 E042,2026-11-13 11:39:03,feature-researcher,Ablation: base+areas+baths+ages+quality_interactions+ordinal_quality + skew_log1p / elasticnet,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125622,0.023348,1.05,retain,40d4075b8edd
 E064,2026-11-13 12:10:17,ensemble-researcher,Ensemble: blend of linear_only (ridge+lasso+elasticnet),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125848,0.023411,11.24,reject,5829c40ace30
+E074,2026-11-17 00:06:56,ensemble-researcher,Ensemble: stack of linear_only (ridge+lasso+elasticnet),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.125927,0.02357,9.64,reject,92f7b3f8660d
 E040,2026-11-13 11:39:01,feature-researcher,Ablation: base + skew_log1p / elasticnet,base,keep_all,5,1,0.128454,0.027172,0.48,retain,82a9c6db174d
 E055,2026-11-13 11:48:10,model-researcher,Ridge best of grid (standard scaler),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.130284,0.023196,0.84,retain,f52e03dd28cf
 E041,2026-11-13 11:39:02,feature-researcher,Ablation: base+areas+baths+ages+quality_interactions+ordinal_quality + skew_log1p / ridge,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.130424,0.023573,0.79,retain,3077417a2e52
@@ -61,8 +69,8 @@ E008,2026-11-13 11:38:13,feature-researcher,Ablation: base+areas / xgboost,base+
 E014,2026-11-13 11:38:20,feature-researcher,Ablation: base+ages / xgboost,base+ages,keep_all,5,1,0.146628,0.014359,1.42,investigate,23a70ce9144b
 E020,2026-11-13 11:38:27,feature-researcher,Ablation: base+ordinal_quality / xgboost,base+ordinal_quality,keep_all,5,1,0.146971,0.019793,1.23,retain,6ebd34e1ac85
 E047,2026-11-13 11:39:11,feature-researcher,LotFrontage global_median / xgboost / base,base,keep_all,5,1,0.147014,0.018084,1.45,investigate,924b7886617c
-E046,2026-11-13 11:39:10,feature-researcher,LotFrontage neighborhood_median / xgboost / base,base,keep_all,5,1,0.148681,0.018977,1.73,retain,c199334d0e5a
 E004,2026-11-13 11:36:53,model-researcher,XGBoost defaults,base,keep_all,5,1,0.148681,0.018977,2.01,retain,36a21dcfa22e
+E046,2026-11-13 11:39:10,feature-researcher,LotFrontage neighborhood_median / xgboost / base,base,keep_all,5,1,0.148681,0.018977,1.73,retain,c199334d0e5a
 E048,2026-11-13 11:39:13,feature-researcher,LotFrontage knn / xgboost / base,base,keep_all,5,1,0.149,0.020179,1.58,investigate,1e78e043ab11
 E002,2026-11-13 11:36:50,model-researcher,OLS on numeric columns,base,keep_all,5,1,0.159875,0.034809,0.12,retain,6253593dbbbd
 E001,2026-11-13 11:36:50,model-researcher,Mean baseline,base,keep_all,5,1,0.398713,0.027407,0.03,retain,1b31242f309d
