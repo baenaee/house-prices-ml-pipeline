@@ -24,7 +24,7 @@ We use `log1p(x) = log(1 + x)` rather than `log(x)`. For prices the two are almo
 |---|---|---|---|
 | 0.399 | about 49% | about $80,000 | predicting the mean for everyone (E001) |
 | 0.141 | about 15% | about $24,500 | Ridge on base features (E003) |
-| 0.126 | about 13% | about $21,800 | best result so far, ElasticNet on all features with skew correction (E042) |
+| 0.126 | about 13% | about $21,800 | best linear result of the feature stage, ElasticNet on all features with skew correction (E042); the final CatBoost model is at about 0.12 (parts 2c and 4) |
 | 0.010 | about 1% | about $1,600 | the size of a difference we would call tiny |
 
 Two cautions you should be able to state. First, the dollar translation is approximate because the error is a ratio: the same log error is a bigger dollar error on an expensive house. Second, a model trained in log space and converted back with `expm1` predicts something close to the median price of houses like this one, not the mean. For a pure ranking metric like RMSLE that is fine, but it is a systematic bias if someone reads the predictions as expected dollar amounts.

@@ -258,7 +258,7 @@ def stage2_rule(values, reference):
 
 ---
 
-## 7. Verification notes: things I noticed (for the director)
+## 7. Verification notes: inconsistencies found while checking the records
 
 1. `stage1_summary.json` mixes two references. The XGBoost, LightGBM and CatBoost entries were computed with reference 0.11946 (E060), for example XGBoost gap 0.12307 - 0.11946 = 0.0036. The `_rule` block and the `catboost_native` entry were rewritten later with reference 0.118066 (E061, an ensemble, registered in between): native gap 0.12212 - 0.11807 = 0.0041. The D19 decisions do not change with either reference (XGBoost would be 0.0050, still above 0.003), but the file is not internally consistent.
 2. `stage2_rule` with 10 or fewer completed trials compares the first and last of the running best. For `catboost_native` (5 trials) this gives `improving_last_10 = true` and `stage2_recommended = true`, which is not meaningful.

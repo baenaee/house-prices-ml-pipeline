@@ -311,3 +311,36 @@ def test_repeatedkfold_has_no_n_splits_attribute():
     # root cause of F1, pinned so that a sklearn change is noticed
     assert not hasattr(RepeatedKFold(n_splits=5, n_repeats=3), "n_splits")
     assert hasattr(KFold(5), "n_splits")
+
+
+# ---------------------------------------------------------------------------
+# Final round (Agent D, 2026-11-17): state after the single holdout evaluation
+# ---------------------------------------------------------------------------
+
+
+def test_final_holdout_log_is_one_unforced_E066_entry_and_matches_saved_predictions():
+    import json
+
+    log = v.holdout_usage()
+    assert len(log) == 1
+    ev = log[0]
+    assert ev["frozen_experiment_id"] == "E066" and ev["forced"] is False and ev["n_previous_uses"] == 0
+    assert ev["n_holdout"] == 219
+    path = config.EXPERIMENTS_DIR / "finalists" / "holdout_predictions_E066.csv"
+    h = pd.read_csv(path)
+    ids = json.loads((config.EXPERIMENTS_DIR / "holdout_ids.json").read_text(encoding="utf-8"))["holdout_ids"]
+    assert set(h[config.ID_COL]) == set(ids) and len(h) == 219
+    assert abs(float(np.sqrt(np.mean(h["residual_log"] ** 2))) - ev["rmse_log"]) < 1e-6
+
+
+def test_final_submission_is_valid_and_ordered_like_the_sample():
+    sub_path = config.SUBMISSIONS_DIR / "E066_all.csv"
+    if not sub_path.exists():
+        pytest.skip("submission not generated in this checkout")
+    sub = pd.read_csv(sub_path)
+    sample = pd.read_csv(config.SAMPLE_SUBMISSION_CSV)
+    assert list(sub.columns) == [config.ID_COL, config.TARGET]
+    assert len(sub) == len(sample) == 1459
+    assert (sub[config.ID_COL].to_numpy() == sample[config.ID_COL].to_numpy()).all()
+    p = sub[config.TARGET].to_numpy()
+    assert np.isfinite(p).all() and (p > 0).all()

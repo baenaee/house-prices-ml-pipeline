@@ -342,3 +342,73 @@ Checks, 2026-11-17, before any holdout use: (a) D22 equals my rule 2 and 4 outco
 Pre-registered expectation for the 219-row holdout RMSE (log scale) of E066 refit on the 1,241 development rows. Basis: seed-7 CV mean 0.1217 (fold SD 0.0131, 15 folds of about 248 rows range 0.1027 to 0.1501, 10th-90th percentile 0.109 to 0.140); the final fit uses 100% instead of 80% of the development rows (worth about -0.001); holdout sampling error for 219 rows about 0.0138 (SD) and right-skewed because a few large-error houses dominate. Expected centre **0.121**. **Consistent with the CV estimate: 0.100 to 0.145.** Below 0.100 is better than anything seen in 15 folds and would be luck, not a finding; above 0.145 up to 0.150 is a bad draw within the fold range; **above 0.150 or below 0.095 I will report as inconsistent and look for a data or pipeline fault (never for a tuning remedy)**. The comparison is level only; the holdout cannot rank E066 against E068 (sampling error 0.014 against a 0.001 difference).
 
 **APPROVED: freeze E066 (D22) and the planned holdout procedure, subject to committing `score_holdout.py` first.**
+
+
+## 10. Final round
+
+Date 2026-11-17, repository at `385a542`. Read-only on pipeline code. I did not call `score_holdout_once`, did not predict on the holdout, did not run `train`/`predict` into the real `outputs/`, and did not write the registry. The independent rebuild ran in memory (no file written). Added tests: two in `tests/test_validation.py` (final holdout log state and submission validity). Probes and scripts are outside the repository.
+
+### 10.1 Holdout discipline
+
+- `experiments/holdout_usage.log` has exactly one line: 2026-11-17 00:40:45, E066, 219 rows, RMSE 0.10645, `forced` false, `n_previous_uses` 0. `holdout_ids.json` still has one commit (`582bf86`) and 219 ids.
+- Sidecars: `E066_development.json` rows development, 1,241 rows, `includes_holdout_rows` false, `holdout_scored_before_fit` false, hash `be58905cb40a`, fitted 00:40:42, three seconds BEFORE the logged scoring; commit field `264f43f` (the script commit; the pipeline commit is `23f56ac`). `E066_all.json` rows all, 1,460 rows, `holdout_scored_before_fit` true, 00:41:04, after the log line. `git diff --stat 23f56ac HEAD -- src` is empty and `git log 23f56ac..HEAD` touches only the scoring script, the predictions CSV, the usage log, the submission and docs; no change to `src/`, to the registry, or to tuning/ensemble code after the freeze. The two sidecars carry identical builder kwargs equal to registry E066.
+- `holdout_predictions_E066.csv`: 219 rows, Id set equals `holdout_ids.json`, no duplicates, `residual_log` equals `y_log - pred_log` (3.6e-15), RMSE recomputed 0.106450, equal to the logged value.
+
+### 10.2 Why the holdout is below the CV estimate, and what may be claimed
+
+Numbers (my scripts, E066 only): 
+- Seed-7 fold scores range from 0.1027 to 0.1501 (mean 0.1217, SD 0.0131); 0.1065 lies inside that range, close to its low end (it equals the 2nd best of 15 folds).
+- The four houses above 4,000 sq ft of living area (Ids 524, 692, 1183, 1299) are all development rows; the holdout's largest GrLivArea is 3,627. In the seed-42 out-of-fold predictions of E066 those four houses have log errors +0.669, -0.529, -0.636, +0.603 and carry 8.5% of the total squared error. Pooled OOF RMSE: 0.1190 with them, 0.1140 without (-0.0050). By fold: fold 2 goes from 0.1323 to 0.1159 and fold 3 from 0.1391 to 0.1327 when they are removed; the other three folds contain none of them (0.1039, 0.1023, 0.1128).
+- The holdout's own errors: mean residual +0.004 (no bias), MAE 0.076, largest |error| 0.41 (Id 711); the five worst houses carry 24% of the squared error, and without the worst three the RMSE would be 0.0977. Holdout log price mean 12.028, SD 0.403, against development 12.023 and 0.399, so the sample is not unusual in price level.
+- The development-row fit used 100% of 1,241 rows against 80% in the folds (worth roughly 0.001).
+
+Reading: three effects point the same way, in this order of size: no extreme-GrLivArea houses in the holdout (about 0.005), the fold-draw and sampling noise of 219 houses, and the larger training set (about 0.001). The score is not evidence of leakage: the model was fitted before scoring, the holdout was untouched, and nothing in the procedure was tuned to it.
+
+Interval (bootstrap of the 219 squared residuals, 20,000 resamples, seed 0): RMSE 0.1065, **95% interval 0.0922 to 0.1206**, bootstrap SD 0.0073. The pre-registered consistent range (0.100 to 0.145, centre 0.121) is met. Note that the seed-7 CV estimate 0.1217 lies just above the upper end of this interval (0.1206); with the extreme houses removed from the comparison the gap disappears (0.1140 seed-42 pooled OOF without them, plus the 0.003 to 0.004 fresh-fold shift, about 0.117 to 0.118).
+
+**May it be reported as an unbiased estimate?** Yes, as an unbiased single draw of the generalisation RMSE of the development-row fit of E066 on houses like the holdout, with the stated uncertainty (about 0.007 sampling SD, interval 0.092 to 0.121, which ignores the variance of the model fit). Say all of the following with it: (1) it is one 219-house sample with no house above 4,000 sq ft, so it is probably favourable relative to the competition's test set; (2) the more conservative level is the seed-7 CV estimate 0.1217; (3) the submitted model is the refit on all 1,460 rows, which has seen the holdout, and has no separate error estimate; (4) the holdout was not used to choose between E066 and the ensembles and cannot (sampling error about 0.014 against a 0.001 difference).
+
+### 10.3 Submission file and independent rebuild
+
+- `outputs/submissions/E066_all.csv`: columns `Id, SalePrice`; 1,459 rows; Id order equal to `sample_submission.csv`; no duplicates; all prices finite and positive. Prices: min 41,901, median 156,611, mean 177,572, max 524,842 (train: 34,900; 163,000; 180,921; 755,000). Log-price mean 12.009, SD 0.390 (train 12.024, 0.399); quantiles 1/5/25/50/75/95/99%: 66.7k, 91.2k, 127.6k, 156.6k, 208.2k, 335.4k, 435.3k (train 61.8k, 88.0k, 130.0k, 163.0k, 214.0k, 326.1k, 442.6k). Spearman of the prediction with OverallQual 0.84 and with GrLivArea 0.74. Lowest predictions are 729-936 sq ft quality-3 houses (Ids 1823, 2892, 2894), highest are 2,800-3,500 sq ft quality 9-10 houses (Ids 2628, 2629, 2683). Nothing implausible; the test median is 4% below the training median, the usual tree-model shrinkage towards the centre, and the maximum 524,842 is below the training maximum 755,000 because no test house resembles the two largest.
+- Anomaly Ids: 1877 -> 212,580; 2550 -> 268,438; 2593 -> 256,431. These are unvalidated (no training house looks like them, residual risk 3 of the claims packet); they are in a plausible range for their descriptions, but I cannot verify them by data.
+- **Independent rebuild:** my own lines (registry record E066, `data.load_development_data(feature_set, with_holdout_split=False)`, `fit(X, y_log)` on 1,460 rows, `expm1` of the test predictions, merged on Id). Maximum relative difference to the submission 3.1e-16, mean 2.6e-17: bit-for-bit identical up to float printing. CatBoost is deterministic here (fixed `random_seed` in the builder, fixed thread count).
+
+### 10.4 Registry, originals, suite
+
+- Registry: 83 records, ids unique and sequential E001-E083, no duplicate config hash (the eight finalist records differ from their sources by seed), `cv_mean` equals the mean of the fold scores (maximum difference 6e-7), fold count equals splits times repeats everywhere, seeds 42 (75 records) and 7 (8 records).
+- Originals: SHA-256 of `HousePricing.ipynb`, `train.csv`, `test.csv` begin 1BB32B57, 1E18ADDF, 8FDD3D82, equal to the manifest.
+- Suite: 216 of 217 tests pass; the one failure is finding F34.
+
+### 10.5 Findings
+
+| ID | Severity | Location | Finding | Evidence | Status |
+|---|---|---|---|---|---|
+| F34 | Low (test hygiene) | `tests/test_holdout_guard.py::test_real_log_is_still_empty` | The test asserts that the real usage log is empty ("check before freezing"). It is now false by design, so the suite is red (1 failed, 214 passed in my run before my two additions). Not a pipeline fault. | pytest output | Open: the director should replace it (my file `tests/test_validation.py` now contains `test_final_holdout_log_is_one_unforced_E066_entry_and_matches_saved_predictions`, which states the new invariant: one line, E066, unforced, 219 rows, predictions CSV reproduces the logged RMSE) and delete or invert the old one, then the suite is 217 of 217 |
+| F35 | Info | `score_holdout.py` | The script predicts on the holdout twice inside one run (the logged call, then a re-prediction to save residuals) and asserts equality to 1e-6. The saved residuals reproduce the logged RMSE to 1e-15, so no second evaluation was made in substance; the report should still say "one scoring call" and not "one prediction". | script and CSV | Note |
+| F36 | Info | holdout composition | No house above 4,000 sq ft in the holdout (decile stratification on price did not control area outliers). It lowers the expected holdout RMSE by about 0.005 relative to the development set. | 10.2 | Note: state in the report |
+
+### 10.6 Verified without findings (this round)
+
+Single usage line, forced false; sidecar fields and order of events; no change to `src/`, registry or experiment code after the freeze commit; holdout predictions CSV (ids, arithmetic, RMSE); submission format, order, finiteness and distribution; bit-level rebuild of the submission from the registry record; registry integrity for 83 records; originals unchanged; Stage 2, ensemble and finalist results as in section 9.
+
+### 10.7 Residual risks for the report
+
+1. Selection optimism: seed-42 scores (E066 0.1181) are optimistic by about 0.003 to 0.004 on fresh folds (seed 7: 0.1217); quote the seed-7 figure as the CV estimate.
+2. The holdout is one 219-house sample (interval 0.092 to 0.121), has no house above 4,000 sq ft, and cannot rank close models; the E066 versus average-ensemble choice is a parsimony decision on a tie (paired difference -0.0010, adjusted SE 0.003).
+3. The submitted model is refit on all rows; its own error is unmeasured.
+4. Test-only anomalies (Ids 2593, 2550, 1877, 2121): predictions unvalidated.
+5. Tuned parameters sit on the edge of the search box (2,000 iterations; LightGBM `min_child_samples` 5); a wider search could change the tuned level slightly, not the conclusion.
+6. Reconstructed cleaning rule C01 (1 training row, 9 test houses), registry writes not atomic (F27), pickled artefacts (F28), pandas/scikit-learn versions pinned (only pandas 2.3.3 run), F30 (runner SE too small), F29/F31/F32 notes.
+7. Independence: this audit is by an agent of the same team; the external reviewer's read of the repository is the independent check.
+8. No Kaggle leaderboard score exists and none is claimed; the file was not submitted.
+
+### 10.8 Final sign-off
+
+- Holdout discipline: **clean** (one unforced use, after the freeze, model fitted before, nothing changed afterwards).
+- Reported holdout score 0.10645 with interval 0.092 to 0.121: **admissible as an unbiased single estimate with the four qualifications of 10.2**.
+- Submission `outputs/submissions/E066_all.csv`: **valid and reproducible**; fit for manual upload.
+- Registry and originals: **intact**.
+- Open items before the final commit: fix the stale guard test (F34); re-count the suite in the claims packet (217); documents must quote numbers as in 10.7 and the claims packet section F.
+
+**Final statement: from the validation side there is nothing that blocks reporting or submitting E066.**
