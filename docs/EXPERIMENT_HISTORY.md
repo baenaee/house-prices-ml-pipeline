@@ -224,3 +224,44 @@ State at the pause: registry E001–E064 (64 records, consistent); tests 214 pas
 ### 2026-11-13 12:27 — E065: CatBoost with native categoricals, Stage 1, TIME-CAPPED
 
 Agent B's fourth Optuna study (`--catboost-native`: the preprocessor only imputes text columns; CatBoost encodes them itself with ordered target statistics) ran under the 25-minute cap and finished during the pause: 5 of 25 planned trials in 28.0 min (5–9 min per trial vs about 17 s for one-hot CatBoost), best CV 0.12212 (fold std 0.0164), registered by the script as E065 with the complete params. Compared with one-hot CatBoost E060 (0.11946 after 25 trials in 6.9 min) it is behind by 0.0027 with far fewer trials, so the comparison is not conclusive but the cost ratio is: finishing the study would take about 2 more hours of the 3 h tuning cap. Provisional ruling for the next session (to confirm with Agent B): keep E065 as a documented partial result, do not extend the native study, spend the remaining budget on Stage 2 (D19). Hypothesis H3 (native categoricals not worth the cost on 1,241 rows) stands unrefuted.
+
+## 2026-11-16 — Session V4: recovery, Stage 2, ensembles on final bases
+
+Recovery (director): commit `6560a90`, tree clean, registry 65 records, 215 tests passed, originals' SHA-256 equal to the manifest, holdout never scored (no `holdout_usage.log`), no stale processes. Team this session: `model-researcher` (Sonnet) for the boosting chapter and interpretability; other specialists spawned when their block starts. All registering runs were launched by the director, one at a time (F27 single-writer rule).
+
+### E066–E067: boosting Stage 2 (C6, ruling D19)
+
+`run_optuna_stage1.py --boosters catboost lightgbm --n-trials 75 --time-cap-minutes 60 --stage 2` resumed the two SQLite studies from 25 completed trials (a copy of the database was taken first, `optuna_stage1.pre_stage2.db`, gitignored). The `--stage` flag is new and only labels the registered record.
+
+| id | model | Stage 1 best (25 trials) | Stage 2 best (75 trials) | change | fold std | minutes | best params |
+|---|---|---|---|---|---|---|---|
+| E066 | CatBoost (one-hot) | 0.11946 (E060) | 0.11807 (trial 43) | −0.0014 | 0.0167 | 30.0 | lr 0.0167, 2000 iterations, depth 6, l2_leaf_reg 1.41, subsample 0.587, rsm 0.813 |
+| E067 | LightGBM | 0.12442 (E059) | 0.12173 (trial 35) | −0.0027 | 0.0185 | 3.2 | lr 0.0169, 2000 trees, 8 leaves, subsample 0.753, colsample 0.891, reg_alpha 0.153, reg_lambda 0.533, min_child_samples 5 |
+
+Reading (director, with Agent B's trial statistics): both best-so-far curves are flat after trial 45; 58 of 75 CatBoost trials lie within 0.003 of the best (a plateau, not a peak); the trial-score standard deviation fell from 0.0028 to 0.0005 (CatBoost) and from 0.0070 to 0.0016 (LightGBM) between the first and last 25 trials. Neither gain exceeds the 0.003 noise band and a best-of-75 carries more selection optimism than a best-of-25, so hypothesis H1 (Stage 2 improves CatBoost by less than the noise band) is confirmed. Both bests sit on the upper bound of the tree-count range (2,000) and LightGBM's `min_child_samples` on its floor (5): the optimum may lie outside the search box; recorded as a limitation, not pursued.
+
+Agent B's review of the Stage 1 artefacts also found, and the director accepts as documentation corrections: (i) `stage1_summary.json` mixes two reference scores (0.11946 for the three one-hot boosters, 0.118066, an ensemble, for the native entry and the `_rule` block); D19 is the same under either; (ii) `stage2_rule` with 10 or fewer trials compares first and last running best, so the `stage2_recommended: true` of the 5-trial native study is not meaningful; (iii) native trials took 1.7–10.5 min (mean 5.6), not "5–9"; (iv) E060/E066 use CatBoost `boosting_type` Plain (the library default at this data size with MVS bootstrap), not ordered boosting; (v) the first five native trials used the same hyper-parameters as the first five one-hot trials (seeded TPE start-up) and native was worse in all five pairs by 0.0016–0.0028 at 15–24 times the cost, which is paired evidence for H3.
+
+| # | Decision | Alternatives considered | Ruling and evidence |
+|---|---|---|---|
+| D21 | Tuning is closed after Stage 2. E066 and E067 replace E060 and E059 as ensemble bases. The CatBoost-native study stays a documented partial result (E065). Tuning time used: 38.8 + 33.2 = 72 of 180 minutes | widen the search box (more trees, lower learning rate); finish the native study (about 2 h) | Both studies are flat over the last 10 trials and on a plateau; expected further gain is below the 0.003 band and the measured selection optimism; native categoricals lost all five paired comparisons at 15–24x cost. Whether E066 is really better than E060 is settled on the seed-7 finalist folds, not here. |
+
+### E068–E075: ensembles on the final bases (C7)
+
+`run_ensembles.py --select-best` (director, registry lock), bases E055 Ridge, E056 Lasso, E057 ElasticNet, E058 XGBoost, E067 LightGBM, E066 CatBoost; every base's CV mean was recomputed and equals the registered value to 1e-6. 22.3 minutes. Nested protocol: weights and meta-learner are fit inside each outer-train partition from inner out-of-fold predictions. Paired difference and its standard error are against the best member on the same five folds.
+
+| id | ensemble | CV RMSE | paired diff vs best member | paired SE | one-SE verdict |
+|---|---|---|---|---|---|
+| E068 | equal-weight average Lasso + CatBoost | 0.11734 | −0.0007 | 0.0019 | within noise |
+| E072 | nested stack (Ridge meta) Lasso + CatBoost | 0.11748 | −0.0006 | 0.0017 | within noise |
+| E069 | NNLS blend Lasso + CatBoost | 0.11802 | −0.0001 | 0.0017 | within noise |
+| E073 | nested stack, six bases | 0.11846 | +0.0004 | 0.0022 | within noise |
+| E075 | nested stack, three boosters | 0.11858 | +0.0005 | 0.0012 | within noise |
+| E071 | NNLS blend, three boosters | 0.11872 | +0.0007 | 0.0009 | within noise |
+| E070 | NNLS blend, six bases | 0.11894 | +0.0009 | 0.0023 | within noise |
+| E074 | nested stack, three linear models | 0.12593 | +0.0005 vs Lasso | 0.0003 | reject |
+| (E064) | NNLS blend, three linear models (already registered) | 0.12585 | | | |
+
+Diversity with the final bases (`experiments/ensemble/diversity_20261116_234858.csv`): residual correlation linear–linear 0.970–0.997, tree–tree 0.939–0.972, linear–tree 0.825–0.860; pooled OOF RMSE CatBoost 0.1190, LightGBM 0.1228, XGBoost 0.1242, Lasso 0.1272.
+
+Reading: no ensemble beats CatBoost E066 by more than one paired standard error on the selection folds. The better CatBoost became, the less the Lasso partner adds (average: −0.0014 with the Stage 1 CatBoost, −0.0007 with the Stage 2 one). Adding near-duplicate bases (six-base and three-booster ensembles) is slightly worse than CatBoost alone: learned weights cost variance and buy no diversity. The only candidates that are not worse are the two-member Lasso + CatBoost combinations; the choice between "CatBoost alone" and "average of Lasso and CatBoost" goes to the seed-7 finalist folds.

@@ -1,0 +1,9 @@
+source_id,finalist_id,title,selection_cv_mean,fresh_cv_mean,fresh_cv_std,optimism,seconds,paired_diff_vs_best,paired_se,within_one_se_of_best
+E068,E077,Ensemble: average of best_linear+best_tree (lasso+catboost),0.117344,0.12066,0.01433,0.00331,97.4,0.0,0.0,True
+E061,E081,Ensemble: average of best_linear+best_tree (lasso+catboost),0.118066,0.12147,0.01488,0.0034,49.6,0.00081,0.0004,False
+E072,E078,Ensemble: stack of best_linear+best_tree (lasso+catboost),0.117479,0.12164,0.01398,0.00416,489.6,0.00099,0.00061,False
+E066,E076,Optuna stage 2: catboost best of 75 trials,0.118072,0.12166,0.01305,0.00359,84.3,0.00101,0.00176,True
+E069,E079,Ensemble: blend of best_linear+best_tree (lasso+catboost),0.118022,0.1224,0.01393,0.00438,529.0,0.00174,0.00085,False
+E060,E080,Optuna stage 1: catboost best of 25 trials,0.119457,0.12325,0.01286,0.00379,47.5,0.00259,0.0013,False
+E067,E083,Optuna stage 2: lightgbm best of 75 trials,0.121733,0.12524,0.0132,0.0035,11.2,0.00458,0.00171,False
+E056,E082,Lasso best of grid (robust scaler),0.12545,0.12816,0.01865,0.00271,2.4,0.0075,0.00206,False
