@@ -6,7 +6,7 @@ Final version, 2026-11-17. Every number comes from `experiments/registry.jsonl` 
 
 - **Final model:** a single CatBoost regressor on one-hot inputs with six tuned hyper-parameters (registry id E066, configuration hash `be58905cb40a`), trained on all 1,460 training rows, no outlier removal.
 - **Expected error:** about **0.12**. The cross-validated estimate on folds not used for any choice is 0.1217 (15 folds, fold standard deviation 0.013).
-- **Holdout:** 0.1065 on 219 houses, evaluated once after the procedure was frozen and approved by the independent auditor. This is inside the range the auditor wrote down beforehand (0.100–0.145) and on its favourable side; it is a consistency check, not a better estimate (section 8).
+- **Holdout:** 0.1065 (95 % bootstrap interval 0.092–0.121) on 219 houses, evaluated once after the procedure was frozen and approved by the independent auditor. This is inside the range the auditor wrote down beforehand (0.100–0.145) and on its favourable side; it is a consistency check, not a better estimate (section 8).
 - **Against the baselines:** predicting the mean scores 0.399, a numeric-only linear regression 0.160. The final model removes about 70 % of the mean baseline's error on the same folds.
 - **The best alternative** is the equal-weight average of Lasso and CatBoost: 0.1207 on fresh folds, 0.0010 better than the frozen model, a difference of one third of a standard error. It was not chosen, by a rule fixed before the comparison was read (section 7).
 - **Submission file:** `outputs/submissions/E066_all.csv`, validated, not submitted.
@@ -125,18 +125,19 @@ Frozen specification: `houseprices.models:build_catboost(learning_rate=0.0166942
 
 ## 8. The holdout evaluation
 
-One call to `validation.score_holdout_once` on 2026-11-17, model fitted on the 1,241 development rows (commit `264f43f`), logged in `experiments/holdout_usage.log`.
+One scoring call to `validation.score_holdout_once` on 2026-11-17 (the script then re-predicted with the same fitted model to save the residuals, which reproduce the logged score; audit note F35), model fitted on the 1,241 development rows (commit `264f43f`), logged in `experiments/holdout_usage.log`.
 
 | quantity | value |
 |---|---|
 | holdout RMSE (219 rows) | **0.10645** |
+| 95 % bootstrap interval of that RMSE (auditor, 20,000 resamples of the 219 squared residuals) | 0.092 – 0.121 |
 | range pre-registered as consistent with CV | 0.100 – 0.145 |
 | fresh-fold CV estimate | 0.1217 |
 | mean signed residual / mean absolute residual | +0.004 / 0.076 |
 | residuals above 0.3 in absolute value | 3 of 219 (largest 0.41) |
 | median absolute percentage error in dollars | 5.3 % |
 
-The holdout score is lower than the CV estimate. Three reasons make that unsurprising, and none makes 0.106 the expected error: an RMSE over 219 rows has a sampling standard deviation of about 0.01–0.014; the four houses above 4,000 sq ft, which dominate the development-set error, are all development rows (the five fresh folds containing none of them average 0.114, the ten containing at least one average 0.126); and the holdout model was fitted on 1,241 rows where CV models see about 993. The holdout confirms that the cross-validated estimate was not inflated. It cannot rank the frozen model against the average, and it was used for no decision. Nothing was changed after it was scored.
+The holdout score is lower than the CV estimate. Three reasons make that unsurprising, and none makes 0.106 the expected error: the holdout contains no house above 4,000 sq ft (its largest is 3,627), while the four such houses, all development rows, carry 8.5 % of the out-of-fold squared error and raise the pooled development RMSE by 0.005 (the five fresh folds containing none of them average 0.114, the ten containing at least one average 0.126); an RMSE over 219 rows is a noisy quantity (bootstrap standard deviation 0.007); and the holdout model was fitted on 1,241 rows where CV models see about 993 (worth roughly 0.001). The fresh-fold CV estimate, 0.1217, lies just above the upper end of the holdout's bootstrap interval; compared like with like (development folds without the four large houses) the gap disappears. The holdout confirms that the cross-validated estimate was not inflated. It cannot rank the frozen model against the average, and it was used for no decision. Nothing was changed after it was scored.
 
 ## 9. What the model relies on and where it fails
 

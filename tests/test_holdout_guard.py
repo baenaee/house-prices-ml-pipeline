@@ -64,6 +64,14 @@ def test_forced_second_use_is_marked(redirected_log):
     assert len(validation.holdout_usage()) == 2
 
 
-def test_real_log_is_still_empty():
-    """No holdout evaluation has happened yet in this project (check before freezing)."""
-    assert validation.holdout_usage() == []
+def test_real_log_has_exactly_one_unforced_use():
+    """The holdout was scored once, for the frozen E066 (ruling D22, 2026-11-17), and never again.
+
+    Until the freeze this test asserted an empty log (audit F34: the invariant changed when the
+    single evaluation happened; it is inverted, not relaxed).
+    """
+    used = validation.holdout_usage()
+    assert len(used) == 1
+    assert used[0]["frozen_experiment_id"] == "E066"
+    assert used[0]["forced"] is False and used[0]["n_previous_uses"] == 0
+    assert used[0]["n_holdout"] == 219
