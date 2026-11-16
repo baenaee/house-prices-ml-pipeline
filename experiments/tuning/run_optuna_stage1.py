@@ -160,7 +160,7 @@ def register_best(name: str, label: str, study: optuna.Study, elapsed: float, ca
               f"Median trial {complete['value'].median():.4f}, worst {complete['value'].max():.4f}, so the search space "
               f"{'is sensitive to the settings' if complete['value'].max() - best.value > 0.01 else 'is fairly forgiving'}.{cap_txt}")
     _common.run_and_register(
-        exp_id="", title=f"Optuna stage 1: {label} best of {n_done} trials",
+        exp_id="", title=f"Optuna stage {args.stage}: {label} best of {n_done} trials",
         hypothesis=f"A bounded TPE search ({n_done} trials) finds {label} settings clearly better than library defaults.",
         rationale="Boosters are sensitive to learning rate, depth and regularisation; a small seeded TPE search gives a "
                   "fair, budget-bounded tuned score per booster before deciding on a larger Stage 2.",
@@ -168,7 +168,7 @@ def register_best(name: str, label: str, study: optuna.Study, elapsed: float, ca
                        f"space models.OPTUNA_SPACES['{name}']; study stage1_{label}_{fs}_{flt}.",
         builder=builder, builder_kwargs=kwargs, feature_set=fs, train_row_filter=flt,
         interpret=lambda r, t=interp: (t, "retain"), result=result,
-        tags=["tuning", "stage1", name] + (["native-categoricals"] if label.endswith("native") else []),
+        tags=["tuning", f"stage{args.stage}", name] + (["native-categoricals"] if label.endswith("native") else []),
         notes=f"n_trials={n_done}; elapsed={elapsed / 60:.1f} min; top-3 trials: {top_txt}",
     )
 
@@ -181,6 +181,8 @@ def main() -> None:
     ap.add_argument("--n-trials", type=int, default=25)
     ap.add_argument("--catboost-native", action="store_true", help="CatBoost with native_categoricals=True")
     ap.add_argument("--time-cap-minutes", type=float, default=45.0, help="shared cap for the whole stage")
+    ap.add_argument("--stage", type=int, default=1, choices=[1, 2],
+                    help="label only (title/tag of the registered best); studies are shared across stages")
     ap.add_argument("--dry-run", action="store_true",
                     help="2 trials, tiny models, first 150 rows, outputs in a temp dir, registers nothing")
     args = ap.parse_args()
