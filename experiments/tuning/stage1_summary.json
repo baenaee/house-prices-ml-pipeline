@@ -22,44 +22,44 @@
     "train_row_filter": "keep_all"
   },
   "lightgbm": {
-    "best_value": 0.1244158697594937,
-    "gap_to_best_model": 0.004958854943805255,
+    "best_value": 0.12173325131500427,
+    "gap_to_best_model": 0.003667251315004269,
     "within_gap": false,
-    "improving_last_10": true,
-    "stage2_recommended": true,
-    "n_trials": 25,
-    "elapsed_minutes": 1.66,
+    "improving_last_10": false,
+    "stage2_recommended": false,
+    "n_trials": 75,
+    "elapsed_minutes": 3.15,
     "stopped_by_time_cap": false,
     "best_params": {
-      "learning_rate": 0.010334481172332615,
-      "n_estimators": 1600,
-      "num_leaves": 12,
-      "subsample": 0.7585370016849776,
+      "learning_rate": 0.01690642283535162,
+      "n_estimators": 2000,
+      "num_leaves": 8,
+      "subsample": 0.7534307805093956,
       "subsample_freq": 1,
-      "colsample_bytree": 0.8890457758417376,
-      "reg_alpha": 0.1434975236616891,
-      "reg_lambda": 0.3706297029479119,
-      "min_child_samples": 7
+      "colsample_bytree": 0.8913033945175488,
+      "reg_alpha": 0.15272835084270744,
+      "reg_lambda": 0.5332882342103008,
+      "min_child_samples": 5
     },
     "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
     "train_row_filter": "keep_all"
   },
   "catboost": {
-    "best_value": 0.11945701481568845,
-    "gap_to_best_model": 0.0,
+    "best_value": 0.1180722929726418,
+    "gap_to_best_model": 6.292972641791517e-06,
     "within_gap": true,
-    "improving_last_10": true,
+    "improving_last_10": false,
     "stage2_recommended": true,
-    "n_trials": 25,
-    "elapsed_minutes": 6.93,
+    "n_trials": 75,
+    "elapsed_minutes": 30.01,
     "stopped_by_time_cap": false,
     "best_params": {
-      "learning_rate": 0.03468130004588846,
-      "iterations": 1700,
-      "depth": 5,
-      "l2_leaf_reg": 2.1282355829230637,
-      "subsample": 0.6193953211548652,
-      "rsm": 0.7879485194136726
+      "learning_rate": 0.01669422348518078,
+      "iterations": 2000,
+      "depth": 6,
+      "l2_leaf_reg": 1.413619495827429,
+      "subsample": 0.5869892858785986,
+      "rsm": 0.8128738808596279
     },
     "feature_set": "base+areas+baths+ages+quality_interactions+ordinal_quality",
     "train_row_filter": "keep_all"
@@ -71,7 +71,7 @@
     "improving_tolerance": 0.0001,
     "overall_tuning_cap_hours": 3.0,
     "note": "reference = lowest cv_mean in the registry (any model) or this stage's best, whichever is lower; improving = best-so-far dropped by more than the tolerance across the last 10 trials",
-    "stage_elapsed_minutes": 27.98
+    "stage_elapsed_minutes": 33.19
   },
   "catboost_native": {
     "best_value": 0.12212426584616276,

@@ -1,8 +1,10 @@
 id,timestamp,agent,title,feature_set,train_row_filter,cv_n_splits,cv_n_repeats,cv_mean,cv_std,fit_seconds,decision,config_hash
 E061,2026-11-13 12:04:34,ensemble-researcher,Ensemble: average of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118066,0.019848,19.12,investigate,6875c4cf63ec
+E066,2026-11-16 23:47:46,model-researcher,Optuna stage 2: catboost best of 75 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.118072,0.016743,36.93,retain,be58905cb40a
 E062,2026-11-13 12:06:56,ensemble-researcher,Ensemble: blend of best_linear+best_tree (lasso+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119021,0.01965,142.49,investigate,be95c25502af
 E063,2026-11-13 12:10:06,ensemble-researcher,Ensemble: blend of all (ridge+lasso+elasticnet+xgboost+lightgbm+catboost),base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119427,0.020123,189.41,investigate,1218a99843f1
 E060,2026-11-13 11:59:04,model-researcher,Optuna stage 1: catboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.119457,0.016988,18.82,retain,c8cad1c5c963
+E067,2026-11-16 23:47:46,model-researcher,Optuna stage 2: lightgbm best of 75 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.121733,0.018459,3.5,retain,106c60f4a262
 E065,2026-11-13 12:27:17,model-researcher,Optuna stage 1: catboost_native best of 5 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.122124,0.01642,218.39,retain,7e34b1755eff
 E058,2026-11-13 11:59:04,model-researcher,Optuna stage 1: xgboost best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.123071,0.019081,4.52,retain,19f60dffcbda
 E059,2026-11-13 11:59:04,model-researcher,Optuna stage 1: lightgbm best of 25 trials,base+areas+baths+ages+quality_interactions+ordinal_quality,keep_all,5,1,0.124416,0.019067,4.05,retain,ab1e21555f3c
