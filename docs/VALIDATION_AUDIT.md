@@ -412,3 +412,19 @@ Single usage line, forced false; sidecar fields and order of events; no change t
 - Open items before the final commit: fix the stale guard test (F34); re-count the suite in the claims packet (217); documents must quote numbers as in 10.7 and the claims packet section F.
 
 **Final statement: from the validation side there is nothing that blocks reporting or submitting E066.**
+
+### 10.9 Document consistency pass (incomplete, stopped 2026-11-17)
+
+Read-only pass over README, RESEARCH_REPORT, EXECUTIVE_SUMMARY, the packet intro, STUDY_GUIDE parts 0, 4, 6, 7 and the last EXPERIMENT_HISTORY sections. No wrong score, difference, SE, count, price, commit or experiment id was found; no stale "pending" text. Study guide part 5 was only spot-checked. Items reported to the director:
+
+1. Wording stronger than the evidence: README and RESEARCH_REPORT section 1 say the seed-7 folds were "not used for any choice"; they were used once, under the pre-registered rule, to choose among eight finalists.
+2. RESEARCH_REPORT section 2: finalist folds "disjoint from the selection partition"; F20 verified only that no fold is identical (validation overlap up to 25%).
+3. EXECUTIVE_SUMMARY ("each with a test") and STUDY_GUIDE part 6 section 6 ("each audit finding became a test"): Info/Note findings have no test.
+4. RESEARCH_REPORT 4.5: LightGBM minutes 4.8 should be 4.9 (1.7 + 3.2); the 72.0 total needs 4.9.
+5. STUDY_GUIDE part 6: "about 2,600 lines, roughly 215 tests" should be 2,439 lines and 217 tests; `--dry-run` is `--dry-run-rows N` in run_outlier_policy.py and run_linear_family.py.
+6. STUDY_GUIDE part 4: "eight candidates" but seven rows (E061/E081 missing); "a quarter to a half of one SE" should be 0.26 to 0.57.
+7. STUDY_GUIDE part 7: L1 beats Ridge "by 0.005 in every fold"; per-fold gaps are 0.003 to 0.007, mean 0.0048.
+8. RESEARCH_REPORT section 1: "70% of the mean baseline's error on the same folds"; baseline is seed 42, final figure seed 7 (69.5%).
+9. README/EXECUTIVE_SUMMARY "seven audit rounds": the audit labels eight (1, 2, 2b, 3, 4, 5, 6, final) unless 2b is folded into 2.
+
+Verified correct: holdout figures and interval, all finalist/ensemble tables, error-concentration tables, permutation/SHAP rankings, seed-7 fold composition (0.1139 / 0.1255), submission statistics, hashes and commit ids, part 6 module and guard names.
