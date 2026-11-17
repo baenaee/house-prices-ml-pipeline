@@ -25,7 +25,7 @@ Metric: RMSE on `log1p(SalePrice)` (identical to the competition's RMSLE). Model
 
 | estimate | RMSE | source |
 |---|---|---|
-| cross-validation on folds not used for any choice (RepeatedKFold 5x3, seed 7) | **0.1217** | E076 |
+| cross-validation on folds not used for tuning or for generating candidates, used once under a pre-registered rule to choose among eight finalists (RepeatedKFold 5x3, seed 7) | **0.1217** | E076 |
 | the same for the Lasso + CatBoost average (not chosen: 0.0010 better, one third of a standard error) | 0.1207 | E077 |
 | single-use holdout, 219 houses, scored once after the freeze (95 % bootstrap interval 0.092–0.121) | **0.1065** | `experiments/holdout_usage.log` |
 
@@ -40,7 +40,7 @@ Selection-fold scores are optimistic (0.002–0.003 measured by the auditor on l
 - **Stacking is nested.** Base models and the meta-learner are fit inside each outer training partition (inner out-of-fold predictions), so the meta-learner is never scored on rows it was fit on.
 - **The holdout is single-use and guarded in code.** `validation.score_holdout_once` logs each use, refuses a second one, and refuses any frame that is not the registered holdout. `train.py` refuses to fit on all rows until the holdout has been scored.
 - **Every experiment is reproducible from the registry.** `python -m houseprices.evaluate --experiment E056` rebuilds the pipeline from the stored builder and arguments and re-runs the seeded folds; it is the only accepted evidence for a reported score.
-- **An independent auditor read everything.** Seven audit rounds, 36 findings (F1–F36), each with severity, failing example and status, in `docs/VALIDATION_AUDIT.md`. Several were real bugs in the director's code (e.g. the identifier column was dropped before the outlier filter needed it, F9).
+- **An independent auditor read everything.** Seven audit rounds plus a final round, 36 findings (F1–F36), each with severity, evidence and status, in `docs/VALIDATION_AUDIT.md`. Several were real bugs in the director's code (e.g. the identifier column was dropped before the outlier filter needed it, F9).
 
 ## Repository layout
 

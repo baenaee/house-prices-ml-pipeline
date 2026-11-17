@@ -413,7 +413,7 @@ Single usage line, forced false; sidecar fields and order of events; no change t
 
 **Final statement: from the validation side there is nothing that blocks reporting or submitting E066.**
 
-### 10.9 Document consistency pass (incomplete, stopped 2026-11-17)
+### 10.9 Document consistency pass (2026-11-17; findings resolved, see end of section)
 
 Read-only pass over README, RESEARCH_REPORT, EXECUTIVE_SUMMARY, the packet intro, STUDY_GUIDE parts 0, 4, 6, 7 and the last EXPERIMENT_HISTORY sections. No wrong score, difference, SE, count, price, commit or experiment id was found; no stale "pending" text. Study guide part 5 was only spot-checked. Items reported to the director:
 
@@ -428,3 +428,21 @@ Read-only pass over README, RESEARCH_REPORT, EXECUTIVE_SUMMARY, the packet intro
 9. README/EXECUTIVE_SUMMARY "seven audit rounds": the audit labels eight (1, 2, 2b, 3, 4, 5, 6, final) unless 2b is folded into 2.
 
 Verified correct: holdout figures and interval, all finalist/ensemble tables, error-concentration tables, permutation/SHAP rankings, seed-7 fold composition (0.1139 / 0.1255), submission statistics, hashes and commit ids, part 6 module and guard names.
+
+**Resolution (director, 2026-11-17).** The director's list of record was `docs/PENDING_FIXES.md` (11 items: the nine above, with item 5 split into line/test counts and dry-run flags, and item 6 into the missing row and the SE ratio). Each was re-checked against the registry and saved artefacts before editing, with no experiment re-run and no holdout access:
+
+| item | check | change |
+|---|---|---|
+| 1 | seed-7 folds chose among the 8 finalists (D22) | README table, report §1: "not used for tuning or for generating candidates; used once, under a pre-registered rule, to choose among eight finalists" |
+| 2 | F20: no identical fold, overlap up to 25 % | report §2, study guide part 3, EXPERIMENT_HISTORY D17: "no fold identical to a selection fold" |
+| 3 | the audit rows name a test for each code bug (e.g. F10 `test_dry_run_results_must_not_be_registered`, F25 `test_predict_rejects_overflowing_prices`); Info/Note findings and the documentation/inference findings F29, F30 have none | executive summary: "each code bug has a test, while informational notes are documented without one"; study guide part 6 §6 likewise |
+| 4 | Stage 1 1.7 + Stage 2 3.2 (§9) | report §4.5 LightGBM 4.9 min; column sums to 72.0 |
+| 5 | `src/houseprices` 2,439 lines; pytest 217 passed | study guide part 6 intro |
+| 6 | argparse in the runners | part 6 §5 names `--dry-run` and `--dry-run-rows N` per script |
+| 7 | finalist CSV: E061→E081 0.11807 / 0.12147 / +0.0034 | row added to part 4 table (now eight rows) |
+| 8 | E077−E076 paired: mean −0.00101, sd 0.00683; ratios 0.26 / 0.33 / 0.57 | part 4 §2 and answer 2 |
+| 9 | Ridge E055 minus E056/E057 per fold 0.0029–0.0066, means 0.0048 / 0.0047 | part 7 D16 row and "Ridge as a finalist", part 2b: "in every fold, by 0.005 on average" |
+| 10 | 1 − 0.11807/0.39871 = 70.4 % on selection folds (69.5 % if the seed-7 figure is used) | report §1: "on the selection folds ... (0.1181 against 0.3987)" |
+| 11 | section headings: rounds 1, 2, 2b, 3, 4, 5, 6, final | README, executive summary: "seven rounds plus a final round" |
+
+Study guide rebuilt from the drafts with `build_study_guide.py` (only the edited draft lines changed). Checks after the edits: no stale phrase remains outside this audit file; headline numbers (0.1217, 0.1207, 0.10645, 0.092–0.121, 72 of 180 min, E066 hash) unchanged; registry 83 lines; holdout log one line; originals' SHA-256 unchanged; suite 217 passed. Claim F4 of the packet closed. `docs/PENDING_FIXES.md` deleted.

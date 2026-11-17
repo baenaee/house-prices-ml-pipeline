@@ -180,7 +180,7 @@ Each five-fold CV of a linear model in this project takes about one second, whic
 
 Reading, with the necessary caution:
 
-- The L1 family beats Ridge by about 0.005 in **every** fold, which is the strongest kind of evidence available with five folds (a consistent paired difference). The explanation offered in the history file is that with about 350 mostly one-hot columns and 993 training rows, zeroing rare levels works better than shrinking them. Our fitted Lasso keeps 115 of 352 columns.
+- The L1 family beats Ridge in **every** fold, by 0.005 on average (per-fold gaps 0.003 to 0.007), which is the strongest kind of evidence available with five folds (a consistent paired difference). The explanation offered in the history file is that with about 350 mostly one-hot columns and 993 training rows, zeroing rare levels works better than shrinking them. Our fitted Lasso keeps 115 of 352 columns.
 - Lasso and ElasticNet tie (0.0001 apart). Pick either; D16 keeps both as finalists but they are nearly the same model.
 - Fold 2, which holds Id 524, remains the hardest fold (0.155 to 0.160) for every linear model.
 - The registered bests are the minima of 136 comparisons on the same folds, so they are optimistic by about 0.002 to 0.003 (part 2a). The finalist check on fresh seed-7 folds will state the honest number.

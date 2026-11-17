@@ -37,3 +37,4 @@ Status values: todo | in-progress | review | done | blocked. Agents request stat
 | R3 | Study guide drafts (parts 1, 2a, 2b by A; 2c by B; 3 by C; 0, 4, 6, 7 by director; 5 by B) | all | C1, C0 | done | merged by `docs/drafts/build_study_guide.py` |
 | R4 | Controlled pause V3 (2026-11-13 12:20): all teammates stopped, state audited, checkpoint written | director | – | done | see SESSION_CHECKPOINT; 214 tests passing; holdout never scored |
 | R5 | Session V4 (2026-11-16/17): recovery, Stage 2, final ensembles, finalists, freeze, holdout, submission file, documentation | director | – | done | see SESSION_CHECKPOINT; campaign complete; submission NOT uploaded (owner decision) |
+| D2 | Document consistency corrections (auditor §10.9, 11 items from `PENDING_FIXES.md`) | director | D1 | done | 2026-11-17: all 11 verified against registry/finalist CSV and applied; study guide rebuilt; 217 passed; packet claim F4 closed; no experiment, holdout or model change |

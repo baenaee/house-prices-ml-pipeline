@@ -22,7 +22,7 @@ The submission file is produced and validated. It has deliberately not been subm
 - **No leakage by construction.** Every step that learns from data (imputation, skew correction, encoding, scaling, model, ensemble weights) is fitted inside each cross-validation training fold through scikit-learn pipelines.
 - **Measured selection bias.** Scores on the folds used for choosing were 0.003–0.004 too good; all candidates were re-scored on fresh folds and those numbers are the ones reported.
 - **A single-use holdout enforced in code.** One evaluation, after the model was frozen in Git and approved by the auditor, with the acceptable range written down beforehand.
-- **Independent audit.** A separate reviewer read all pipeline code over seven rounds and logged 36 findings, including real bugs in the validation code, each with a test.
+- **Independent audit.** A separate reviewer read all pipeline code over seven rounds plus a final round and logged 36 findings, including real bugs in the validation code; each code bug has a test, while informational notes are documented without one.
 
 ## Findings worth knowing
 

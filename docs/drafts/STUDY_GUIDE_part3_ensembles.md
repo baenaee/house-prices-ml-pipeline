@@ -268,7 +268,7 @@ Reading it honestly:
 
 ## 10. Finalists on fresh folds (E076 to E083)
 
-Rule (decision D17, audit F20): finalists are re-scored on folds disjoint from the selection partition. Selection used seed-42 five-fold. Finalists use RepeatedKFold 5 splits x 3 repeats, seed 7, giving 15 fold scores each. Each finalist has the same configuration as its source experiment, and only the splitter changes. Sources: `experiments/finalists/finalists_20261117_003230.csv` and registry records E076 to E083 (the `notes` field names the source).
+Rule (decision D17, audit F20): finalists are re-scored on fresh folds, none identical to a selection fold (validation overlap up to 25 %, 20 % expected by chance). Selection used seed-42 five-fold. Finalists use RepeatedKFold 5 splits x 3 repeats, seed 7, giving 15 fold scores each. Each finalist has the same configuration as its source experiment, and only the splitter changes. Sources: `experiments/finalists/finalists_20261117_003230.csv` and registry records E076 to E083 (the `notes` field names the source).
 
 ### 10.1 Selection score, fresh score, optimism
 

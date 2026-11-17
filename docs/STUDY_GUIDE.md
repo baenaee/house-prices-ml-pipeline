@@ -754,7 +754,7 @@ Each five-fold CV of a linear model in this project takes about one second, whic
 
 Reading, with the necessary caution:
 
-- The L1 family beats Ridge by about 0.005 in **every** fold, which is the strongest kind of evidence available with five folds (a consistent paired difference). The explanation offered in the history file is that with about 350 mostly one-hot columns and 993 training rows, zeroing rare levels works better than shrinking them. Our fitted Lasso keeps 115 of 352 columns.
+- The L1 family beats Ridge in **every** fold, by 0.005 on average (per-fold gaps 0.003 to 0.007), which is the strongest kind of evidence available with five folds (a consistent paired difference). The explanation offered in the history file is that with about 350 mostly one-hot columns and 993 training rows, zeroing rare levels works better than shrinking them. Our fitted Lasso keeps 115 of 352 columns.
 - Lasso and ElasticNet tie (0.0001 apart). Pick either; D16 keeps both as finalists but they are nearly the same model.
 - Fold 2, which holds Id 524, remains the hardest fold (0.155 to 0.160) for every linear model.
 - The registered bests are the minima of 136 comparisons on the same folds, so they are optimistic by about 0.002 to 0.003 (part 2a). The finalist check on fresh seed-7 folds will state the honest number.
@@ -1410,7 +1410,7 @@ Reading it honestly:
 
 ### 10. Finalists on fresh folds (E076 to E083)
 
-Rule (decision D17, audit F20): finalists are re-scored on folds disjoint from the selection partition. Selection used seed-42 five-fold. Finalists use RepeatedKFold 5 splits x 3 repeats, seed 7, giving 15 fold scores each. Each finalist has the same configuration as its source experiment, and only the splitter changes. Sources: `experiments/finalists/finalists_20261117_003230.csv` and registry records E076 to E083 (the `notes` field names the source).
+Rule (decision D17, audit F20): finalists are re-scored on fresh folds, none identical to a selection fold (validation overlap up to 25 %, 20 % expected by chance). Selection used seed-42 five-fold. Finalists use RepeatedKFold 5 splits x 3 repeats, seed 7, giving 15 fold scores each. Each finalist has the same configuration as its source experiment, and only the splitter changes. Sources: `experiments/finalists/finalists_20261117_003230.csv` and registry records E076 to E083 (the `notes` field names the source).
 
 #### 10.1 Selection score, fresh score, optimism
 
@@ -1531,6 +1531,7 @@ The result, for the eight candidates:
 |---|---|---|---|
 | average Lasso + CatBoost (E068) | 0.1173 | 0.1207 | +0.0033 |
 | nested stack Lasso + CatBoost (E072) | 0.1175 | 0.1216 | +0.0042 |
+| average Lasso + CatBoost, Stage 1 bases (E061) | 0.1181 | 0.1215 | +0.0034 |
 | CatBoost, 75 trials (E066) | 0.1181 | 0.1217 | +0.0036 |
 | NNLS blend Lasso + CatBoost (E069) | 0.1180 | 0.1224 | +0.0044 |
 | CatBoost, 25 trials (E060) | 0.1195 | 0.1233 | +0.0038 |
@@ -1551,7 +1552,7 @@ How precise is that mean? Three answers, from most to least optimistic:
 - The auditor's choice (finding F30): sd / sqrt(5) = 0.0031, on the argument that the three repeats agree with each other almost perfectly and so contribute little new information beyond one 5-fold run.
 - Nadeau and Bengio's corrected resampled variance: multiply the variance by (1/15 + n_test/n_train) = (1/15 + 248/993) = 0.316 instead of 1/15, giving 0.0068 × sqrt(0.316) = 0.0038.
 
-Whichever you take, −0.0010 is between a quarter and a half of one standard error. The data cannot tell these two procedures apart. It also cannot exclude that the average is really better by 0.002 or 0.003; "not significant" is not "equal".
+Whichever you take, −0.0010 is between a quarter and a little over half of one standard error (0.26, 0.33 and 0.57 for the three). The data cannot tell these two procedures apart. It also cannot exclude that the average is really better by 0.002 or 0.003; "not significant" is not "equal".
 
 Contrast with CatBoost 75 trials against CatBoost 25 trials: difference 0.0016 with a standard deviation of only 0.0025, because the two models are almost the same model and their fold scores move together. That is 1.1 to 2.5 standard errors depending on the formula, and the three repeat means are 0.0017, 0.0015, 0.0016. Small, but consistent.
 
@@ -1623,7 +1624,7 @@ Things to notice:
 ### Answers
 
 1. Two effects: the seed-7 partitions are a slightly harder draw for all models, and scores chosen as the best of many on seed 42 include favourable luck that does not repeat. Lasso's shift (0.0027) is mostly the first effect.
-2. The difference is a quarter to a half of its standard error; the pre-registered rule required more than one standard error and 10 of 15 folds; ties go to the simpler model. It is a parsimony choice and the report says the average may be slightly better.
+2. The difference is between a quarter and a little over half of its standard error, depending on the formula; the pre-registered rule required more than one standard error and 10 of 15 folds; ties go to the simpler model. It is a parsimony choice and the report says the average may be slightly better.
 3. The 15 fold scores share the same 1,241 rows; repeats re-cut the same data and training sets overlap heavily, so the scores are positively correlated and the effective number of independent measurements is much smaller than 15.
 4. Look for a fault (wrong rows, a preprocessing difference between fit and predict, a data problem in the holdout), report the number as it is, and not retune. If anything were changed because of it, the holdout would no longer be an unbiased estimate and the report would have to say so.
 5. The CV estimate, about 0.12. The holdout is a single sample of 219 houses that happens to contain none of the four hardest houses; it is a consistency check that came out on the favourable side of its expected range.
@@ -1694,7 +1695,7 @@ The single holdout evaluation (219 houses, RMSE 0.10645) saved `experiments/fina
 
 ## Study guide, part 6: the Python implementation
 
-The earlier parts quote the code where they need it. This part gives the map: which module does what, how a single experiment flows through the package, and the handful of design choices that make the results reproducible. The package is about 2,600 lines in `src/houseprices/`, with roughly 215 tests in `tests/`.
+The earlier parts quote the code where they need it. This part gives the map: which module does what, how a single experiment flows through the package, and the handful of design choices that make the results reproducible. The package is 2,439 lines in `src/houseprices/`, with 217 tests in `tests/`.
 
 ### 1. The data flow of one experiment
 
@@ -1763,7 +1764,7 @@ Two consequences worth remembering. Keyword arguments must be plain JSON (number
 
 ### 5. The experiment runners
 
-Scripts under `experiments/` are thin loops around two helpers in `experiments/models/_common.py`: `run_cv(builder, kwargs, feature_set, row_filter)` and `run_and_register(...)`. The longer-running ones (ablations, outlier policy, linear grids, Optuna, ensembles, interpretability) have a `--dry-run` that uses 150 rows and registers nothing.
+Scripts under `experiments/` are thin loops around two helpers in `experiments/models/_common.py`: `run_cv(builder, kwargs, feature_set, row_filter)` and `run_and_register(...)`. The longer-running ones have a plumbing check that registers nothing: the ablation, LotFrontage, ensemble, Optuna and interpretability runners take `--dry-run` (150 rows); `run_outlier_policy.py` and `run_linear_family.py` take `--dry-run-rows N` (first N rows).
 
 | script | block | ids |
 |---|---|---|
@@ -1788,7 +1789,7 @@ Several rules of the methodology are enforced by the program and tested, so that
 - `run_finalists.py` refuses seed 42.
 - `predict` refuses a submission whose Ids differ from `sample_submission.csv` or whose prices are not finite and positive.
 
-The tests in `tests/test_audit_round2.py` are the auditor's probes: each audit finding became a test that failed before the fix and passes after it.
+The tests in `tests/test_audit_round2.py` are the auditor's probes: each code bug the auditor reported became a test that failed before the fix and passes after it. Informational and note findings (for example F22, F27, F28, F35, F36) are documented in `docs/VALIDATION_AUDIT.md` without a test.
 
 ### 7. Commands you should be able to type
 
@@ -1845,7 +1846,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 | D12 | Skew correction for linear models only | Worth about 0.009 for them; trees are invariant to monotone transforms. |
 | D13 | LotFrontage: neighbourhood median, fitted in the fold | No alternative differed beyond noise; keep the documented default. |
 | D14 | One-standard-error verdicts on 5 folds are provisional | Differences near 0.001 are noise at 5 folds. |
-| D16 | Lasso and ElasticNet are the linear finalists | The L1 models beat Ridge by 0.005 in every fold. |
+| D16 | Lasso and ElasticNet are the linear finalists | The L1 models beat Ridge in every fold, by 0.005 on average (per-fold gaps 0.003 to 0.007). |
 | D17 | Finalists are scored with seed 7 | Seed 42 folds were used for choosing; reusing them repeats the optimism. |
 | D18, D20 | Test-only anomalies documented; year clipper clips the upper bound only | Problems invisible to CV must be reported; clipping the lower bound would have altered two real 1890s garages. |
 | D19, D21 | Staged tuning: 25 trials each, then 75 for CatBoost and LightGBM, then stop | Spend compute where the first stage says it may pay; stop when the curve is flat and the gain is below the noise band. |
@@ -1859,7 +1860,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 | KNN or global-median LotFrontage | E043–E048: differences at most 0.002 | Imputation method for one column with 18 % missing values barely matters here. |
 | Ordinal quality codes as a stand-alone improvement | ablations: within ±0.001 | One-hot already carries the information. |
 | RobustScaler versus StandardScaler | linear grid: at most 0.0001 | Irrelevant once skewed columns are log-transformed. |
-| Ridge as a finalist | 0.005 behind Lasso in every fold | With about 300 one-hot columns, sparsity beats shrinkage. |
+| Ridge as a finalist | behind Lasso in every fold, by 0.005 on average | With about 300 one-hot columns, sparsity beats shrinkage. |
 | Native categorical handling in CatBoost | worse in all five paired trials by 0.0016–0.0028, at 15–24 times the cost; study stopped at 5 of 25 trials | A partial result, reported as partial. |
 | More XGBoost tuning | Stage 1 flat from trial 4, 0.0036 behind | The Stage 2 rule excluded it. |
 | NNLS blend weights, stacking with a Ridge meta-learner | never better than the equal-weight average on either set of folds | Learned weights add variance; with two members and correlated errors there is little to learn. |

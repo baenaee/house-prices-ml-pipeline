@@ -4,7 +4,7 @@ Purpose: state of the project at the end of the research campaign. Earlier check
 
 ## 1. Repository state
 
-- Git: `C:\Program Files\Git\cmd\git.exe`. Final commit: see `git log -1`. Key commits of this session, oldest first: `fb3c03d` boosting chapter draft + interpretability runner · `044a834` Stage 2 tuning · `c9168a0` ensembles on final bases · `4f2db9b` finalists · `23f56ac` FREEZE (ruling D22) · `264f43f` auditor approval + holdout script · `c6943b1` HOLDOUT SCORED ONCE · `385a542` final fit + submission file · `afa49de` report, study guide, notebooks 03–05 · `31a13db` final audit, summary, audit packet · closing commit.
+- Git: `C:\Program Files\Git\cmd\git.exe`. Final commit: see `git log -1`. Key commits of this session, oldest first: `fb3c03d` boosting chapter draft + interpretability runner · `044a834` Stage 2 tuning · `c9168a0` ensembles on final bases · `4f2db9b` finalists · `23f56ac` FREEZE (ruling D22) · `264f43f` auditor approval + holdout script · `c6943b1` HOLDOUT SCORED ONCE · `385a542` final fit + submission file · `afa49de` report, study guide, notebooks 03–05 · `31a13db` final audit, summary, audit packet · `a7204f0` checkpoint V4 · `35143ac` auditor's §10.9 consistency pass · closing commit: the 11 document corrections applied, claim F4 closed (audit §10.9 resolution).
 - Originals byte-identical to `fedba71` (SHA-256 re-verified by the auditor in the final round: notebook 1BB32B57…, train 1E18ADDF…, test 8FDD3D82…).
 - Environment: conda env `houseprices`, python `C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe` (plain `python` not on PATH).
 - Tests: `& "<env python>" -m pytest tests` → **217 passed, 0 failed** (do not add `-q`).
@@ -27,7 +27,7 @@ The number to quote as expected performance is about 0.12 (fresh-fold CV). The h
 
 ## 3. Completed blocks
 
-Phase 0, A, B; C1–C8 (ablations, outlier policy, LotFrontage, linear grids, Stage 1 and Stage 2 boosting, ensembles on Stage 1 and final bases, finalists, freeze, holdout); E1 interpretability (`experiments/interpretability/run_interpretability.py`, `outputs/figures/`, `outputs/interpretability/`); F1 train/predict/submission; F2 final audit (VALIDATION_AUDIT §9–§10, findings F1–F36, all closed, accepted or noted); D1 documentation: `README.md`, `docs/RESEARCH_REPORT.md`, `docs/STUDY_GUIDE.md` (about 34,000 words, built from `docs/drafts/` by `docs/drafts/build_study_guide.py`), `docs/EXPERIMENT_HISTORY.md` (D1–D22), `docs/VALIDATION_AUDIT.md`, `docs/CHATGPT_AUDIT_PACKET.md`, `docs/EXECUTIVE_SUMMARY.md`; notebooks 01–05 with executed copies.
+Phase 0, A, B; C1–C8 (ablations, outlier policy, LotFrontage, linear grids, Stage 1 and Stage 2 boosting, ensembles on Stage 1 and final bases, finalists, freeze, holdout); E1 interpretability (`experiments/interpretability/run_interpretability.py`, `outputs/figures/`, `outputs/interpretability/`); F1 train/predict/submission; F2 final audit (VALIDATION_AUDIT §9–§10, findings F1–F36, all closed, accepted or noted; §10.9 document consistency pass, 11 corrections applied, packet claim F4 closed); D1 documentation: `README.md`, `docs/RESEARCH_REPORT.md`, `docs/STUDY_GUIDE.md` (about 34,000 words, built from `docs/drafts/` by `docs/drafts/build_study_guide.py`), `docs/EXPERIMENT_HISTORY.md` (D1–D22), `docs/VALIDATION_AUDIT.md`, `docs/CHATGPT_AUDIT_PACKET.md`, `docs/EXECUTIVE_SUMMARY.md`; notebooks 01–05 with executed copies.
 
 ## 4. Standing rules that still apply to any future work
 

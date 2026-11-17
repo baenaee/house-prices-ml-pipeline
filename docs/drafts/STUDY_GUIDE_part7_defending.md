@@ -18,7 +18,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 | D12 | Skew correction for linear models only | Worth about 0.009 for them; trees are invariant to monotone transforms. |
 | D13 | LotFrontage: neighbourhood median, fitted in the fold | No alternative differed beyond noise; keep the documented default. |
 | D14 | One-standard-error verdicts on 5 folds are provisional | Differences near 0.001 are noise at 5 folds. |
-| D16 | Lasso and ElasticNet are the linear finalists | The L1 models beat Ridge by 0.005 in every fold. |
+| D16 | Lasso and ElasticNet are the linear finalists | The L1 models beat Ridge in every fold, by 0.005 on average (per-fold gaps 0.003 to 0.007). |
 | D17 | Finalists are scored with seed 7 | Seed 42 folds were used for choosing; reusing them repeats the optimism. |
 | D18, D20 | Test-only anomalies documented; year clipper clips the upper bound only | Problems invisible to CV must be reported; clipping the lower bound would have altered two real 1890s garages. |
 | D19, D21 | Staged tuning: 25 trials each, then 75 for CatBoost and LightGBM, then stop | Spend compute where the first stage says it may pay; stop when the curve is flat and the gain is below the noise band. |
@@ -32,7 +32,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 | KNN or global-median LotFrontage | E043–E048: differences at most 0.002 | Imputation method for one column with 18 % missing values barely matters here. |
 | Ordinal quality codes as a stand-alone improvement | ablations: within ±0.001 | One-hot already carries the information. |
 | RobustScaler versus StandardScaler | linear grid: at most 0.0001 | Irrelevant once skewed columns are log-transformed. |
-| Ridge as a finalist | 0.005 behind Lasso in every fold | With about 300 one-hot columns, sparsity beats shrinkage. |
+| Ridge as a finalist | behind Lasso in every fold, by 0.005 on average | With about 300 one-hot columns, sparsity beats shrinkage. |
 | Native categorical handling in CatBoost | worse in all five paired trials by 0.0016–0.0028, at 15–24 times the cost; study stopped at 5 of 25 trials | A partial result, reported as partial. |
 | More XGBoost tuning | Stage 1 flat from trial 4, 0.0036 behind | The Stage 2 rule excluded it. |
 | NNLS blend weights, stacking with a Ridge meta-learner | never better than the equal-weight average on either set of folds | Learned weights add variance; with two members and correlated errors there is little to learn. |

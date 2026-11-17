@@ -373,7 +373,7 @@ print(s.set_index("Id").loc[[1877, 2550, 2593]].round(0).to_dict())
 
 ### F4. Final numbers in README, research report and study guide
 
-- **Status:** open until those documents are final. Every figure must equal a registry record, a finalist row, the usage log line or the audit sections above: E066 CV 0.1181 (seed 42, selection, optimistic) and 0.1217 (seed 7, fresh folds); holdout 0.10645 with interval 0.092 to 0.121; tuning 72 of 180 minutes.
+- **Status:** closed 2026-11-17 after the document consistency pass (audit §10.9): no score, difference, SE, count or id was wrong; 11 wording and description corrections were applied (three over-strong claims qualified) and re-checked against the registry and finalist CSV; suite 217 passed. Every figure must equal a registry record, a finalist row, the usage log line or the audit sections above: E066 CV 0.1181 (seed 42, selection, optimistic) and 0.1217 (seed 7, fresh folds); holdout 0.10645 with interval 0.092 to 0.121; tuning 72 of 180 minutes.
 - **Look for:** the seed-42 figure quoted as the performance estimate; the holdout quoted as proof that E066 beats the ensemble; a number without a registry id.
 
 ---

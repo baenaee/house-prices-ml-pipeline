@@ -5,9 +5,9 @@ Final version, 2026-11-17. Every number comes from `experiments/registry.jsonl` 
 ## 1. Summary
 
 - **Final model:** a single CatBoost regressor on one-hot inputs with six tuned hyper-parameters (registry id E066, configuration hash `be58905cb40a`), trained on all 1,460 training rows, no outlier removal.
-- **Expected error:** about **0.12**. The cross-validated estimate on folds not used for any choice is 0.1217 (15 folds, fold standard deviation 0.013).
+- **Expected error:** about **0.12**. The cross-validated estimate on fresh folds (not used for tuning or for generating candidates; used once, under a pre-registered rule, to choose among eight finalists) is 0.1217 (15 folds, fold standard deviation 0.013).
 - **Holdout:** 0.1065 (95 % bootstrap interval 0.092–0.121) on 219 houses, evaluated once after the procedure was frozen and approved by the independent auditor. This is inside the range the auditor wrote down beforehand (0.100–0.145) and on its favourable side; it is a consistency check, not a better estimate (section 8).
-- **Against the baselines:** predicting the mean scores 0.399, a numeric-only linear regression 0.160. The final model removes about 70 % of the mean baseline's error on the same folds.
+- **Against the baselines:** predicting the mean scores 0.399, a numeric-only linear regression 0.160. On the selection folds the final model removes about 70 % of the mean baseline's error (0.1181 against 0.3987).
 - **The best alternative** is the equal-weight average of Lasso and CatBoost: 0.1207 on fresh folds, 0.0010 better than the frozen model, a difference of one third of a standard error. It was not chosen, by a rule fixed before the comparison was read (section 7).
 - **Submission file:** `outputs/submissions/E066_all.csv`, validated, not submitted.
 
@@ -23,7 +23,7 @@ Protocol, fixed before the first experiment and enforced in code:
 | holdout | 219 rows (15 %), stratified by price decile, seed 42, Ids in `experiments/holdout_ids.json`; scored once through `validation.score_holdout_once` |
 | development set | the other 1,241 rows |
 | selection folds | `KFold(5, shuffle=True, random_state=42)` |
-| finalist folds | `RepeatedKFold(5, 3, random_state=7)`, disjoint from the selection partition |
+| finalist folds | `RepeatedKFold(5, 3, random_state=7)`; no fold identical to a selection fold (validation overlap up to 25 %, 20 % expected by chance; audit F20) |
 | preprocessing | every fitted step inside the pipeline that cross-validation refits per fold |
 | outlier filters | applied after the split, to training rows only |
 | stacking and blending | nested: weights and meta-learner learned from inner out-of-fold predictions inside each outer-training fold |
@@ -68,7 +68,7 @@ Optuna TPE, objective = mean 5-fold CV RMSE, staged budget.
 | booster | Stage 1, 25 trials | Stage 2, 75 trials | minutes (both stages) |
 |---|---|---|---|
 | XGBoost | 0.1231 (E058) | not run (flat since trial 4, gap > 0.003) | 2.2 |
-| LightGBM | 0.1244 (E059) | 0.1217 (E067) | 4.8 |
+| LightGBM | 0.1244 (E059) | 0.1217 (E067) | 4.9 |
 | CatBoost, one-hot | 0.1195 (E060) | 0.1181 (E066) | 36.9 |
 | CatBoost, native categoricals | 0.1221 after 5 of 25 trials, time-capped (E065) | not run | 28.0 |
 

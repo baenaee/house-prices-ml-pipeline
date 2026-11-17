@@ -14,6 +14,7 @@ The result, for the eight candidates:
 |---|---|---|---|
 | average Lasso + CatBoost (E068) | 0.1173 | 0.1207 | +0.0033 |
 | nested stack Lasso + CatBoost (E072) | 0.1175 | 0.1216 | +0.0042 |
+| average Lasso + CatBoost, Stage 1 bases (E061) | 0.1181 | 0.1215 | +0.0034 |
 | CatBoost, 75 trials (E066) | 0.1181 | 0.1217 | +0.0036 |
 | NNLS blend Lasso + CatBoost (E069) | 0.1180 | 0.1224 | +0.0044 |
 | CatBoost, 25 trials (E060) | 0.1195 | 0.1233 | +0.0038 |
@@ -34,7 +35,7 @@ How precise is that mean? Three answers, from most to least optimistic:
 - The auditor's choice (finding F30): sd / sqrt(5) = 0.0031, on the argument that the three repeats agree with each other almost perfectly and so contribute little new information beyond one 5-fold run.
 - Nadeau and Bengio's corrected resampled variance: multiply the variance by (1/15 + n_test/n_train) = (1/15 + 248/993) = 0.316 instead of 1/15, giving 0.0068 × sqrt(0.316) = 0.0038.
 
-Whichever you take, −0.0010 is between a quarter and a half of one standard error. The data cannot tell these two procedures apart. It also cannot exclude that the average is really better by 0.002 or 0.003; "not significant" is not "equal".
+Whichever you take, −0.0010 is between a quarter and a little over half of one standard error (0.26, 0.33 and 0.57 for the three). The data cannot tell these two procedures apart. It also cannot exclude that the average is really better by 0.002 or 0.003; "not significant" is not "equal".
 
 Contrast with CatBoost 75 trials against CatBoost 25 trials: difference 0.0016 with a standard deviation of only 0.0025, because the two models are almost the same model and their fold scores move together. That is 1.1 to 2.5 standard errors depending on the formula, and the three repeat means are 0.0017, 0.0015, 0.0016. Small, but consistent.
 
@@ -106,7 +107,7 @@ Things to notice:
 ## Answers
 
 1. Two effects: the seed-7 partitions are a slightly harder draw for all models, and scores chosen as the best of many on seed 42 include favourable luck that does not repeat. Lasso's shift (0.0027) is mostly the first effect.
-2. The difference is a quarter to a half of its standard error; the pre-registered rule required more than one standard error and 10 of 15 folds; ties go to the simpler model. It is a parsimony choice and the report says the average may be slightly better.
+2. The difference is between a quarter and a little over half of its standard error, depending on the formula; the pre-registered rule required more than one standard error and 10 of 15 folds; ties go to the simpler model. It is a parsimony choice and the report says the average may be slightly better.
 3. The 15 fold scores share the same 1,241 rows; repeats re-cut the same data and training sets overlap heavily, so the scores are positively correlated and the effective number of independent measurements is much smaller than 15.
 4. Look for a fault (wrong rows, a preprocessing difference between fit and predict, a data problem in the holdout), report the number as it is, and not retune. If anything were changed because of it, the holdout would no longer be an unbiased estimate and the report would have to say so.
 5. The CV estimate, about 0.12. The holdout is a single sample of 219 houses that happens to contain none of the four hardest houses; it is a consistency check that came out on the favourable side of its expected range.

@@ -1,6 +1,6 @@
 # Study guide, part 6: the Python implementation
 
-The earlier parts quote the code where they need it. This part gives the map: which module does what, how a single experiment flows through the package, and the handful of design choices that make the results reproducible. The package is about 2,600 lines in `src/houseprices/`, with roughly 215 tests in `tests/`.
+The earlier parts quote the code where they need it. This part gives the map: which module does what, how a single experiment flows through the package, and the handful of design choices that make the results reproducible. The package is 2,439 lines in `src/houseprices/`, with 217 tests in `tests/`.
 
 ## 1. The data flow of one experiment
 
@@ -69,7 +69,7 @@ Two consequences worth remembering. Keyword arguments must be plain JSON (number
 
 ## 5. The experiment runners
 
-Scripts under `experiments/` are thin loops around two helpers in `experiments/models/_common.py`: `run_cv(builder, kwargs, feature_set, row_filter)` and `run_and_register(...)`. The longer-running ones (ablations, outlier policy, linear grids, Optuna, ensembles, interpretability) have a `--dry-run` that uses 150 rows and registers nothing.
+Scripts under `experiments/` are thin loops around two helpers in `experiments/models/_common.py`: `run_cv(builder, kwargs, feature_set, row_filter)` and `run_and_register(...)`. The longer-running ones have a plumbing check that registers nothing: the ablation, LotFrontage, ensemble, Optuna and interpretability runners take `--dry-run` (150 rows); `run_outlier_policy.py` and `run_linear_family.py` take `--dry-run-rows N` (first N rows).
 
 | script | block | ids |
 |---|---|---|
@@ -94,7 +94,7 @@ Several rules of the methodology are enforced by the program and tested, so that
 - `run_finalists.py` refuses seed 42.
 - `predict` refuses a submission whose Ids differ from `sample_submission.csv` or whose prices are not finite and positive.
 
-The tests in `tests/test_audit_round2.py` are the auditor's probes: each audit finding became a test that failed before the fix and passes after it.
+The tests in `tests/test_audit_round2.py` are the auditor's probes: each code bug the auditor reported became a test that failed before the fix and passes after it. Informational and note findings (for example F22, F27, F28, F35, F36) are documented in `docs/VALIDATION_AUDIT.md` without a test.
 
 ## 7. Commands you should be able to type
 
