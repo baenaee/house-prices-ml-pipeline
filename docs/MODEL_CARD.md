@@ -36,6 +36,7 @@ Format after Mitchell et al., *Model Cards for Model Reporting* (2019). Every nu
 | Selection-fold CV (5 folds, used for tuning) | 0.1181 | optimistic by about 0.0036 |
 | Holdout (219 rows, scored once) | 0.1065 | 95 % bootstrap interval 0.092–0.121; contains no house above 4,000 sq ft |
 | Holdout absolute percentage error | median 5.3 %, mean ≈ 8 % | in dollars |
+| **Kaggle test set (1,459 houses, one submission)** | **0.12271** | external confirmation; rank 1,225 of 4,717 on 2026-11-26; used for no decision |
 | Baselines (selection folds) | mean 0.399 · OLS 0.160 · Lasso 0.1255 | |
 
 An equal-weight average of Lasso and CatBoost scored 0.1207 on fresh folds (−0.0010, standard error ≈ 0.003); it was not chosen by a rule fixed before the comparison (parsimony).

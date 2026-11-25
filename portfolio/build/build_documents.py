@@ -185,7 +185,8 @@ cross-validation fold; ensembles are stacked with nested cross-validation; and e
 an append-only registry from which its score can be reproduced with one command. Selection optimism is measured by
 re-scoring eight finalists on fresh folds (+0.003 to +0.004 RMSE), and the final model is chosen with a decision rule
 recorded before the comparison was read. The frozen model, a tuned CatBoost regressor, reaches **0.1217 RMSLE** on
-fresh folds and **0.1065** on the single-use holdout (95 % bootstrap interval 0.092–0.121). Two common practices do not
+fresh folds and **0.1065** on the single-use holdout (95 % bootstrap interval 0.092–0.121); a single submission to
+Kaggle scored **0.1227** on the full test set, confirming the estimate. Two common practices do not
 survive honest validation: removing the well-known outliers from training folds worsens every model, and no blend or
 stacked ensemble improves on the single model by more than a third of a standard error. Errors concentrate at the price
 extremes and in a handful of atypical houses.
@@ -215,8 +216,8 @@ def build_report() -> None:
     <div class="subtitle">A reproducible, audited study on the Kaggle Ames House Prices data</div>
   </div>
   <div>
-    {stats_html([("0.1217", "RMSLE, fresh-fold CV (final CatBoost)"), ("0.1065", "RMSLE, holdout scored once"),
-                 ("83", "logged, reproducible experiments"), ("217", "automated tests")])}
+    {stats_html([("0.1217", "RMSLE, fresh-fold CV (final CatBoost)"), ("0.1227", "RMSLE, Kaggle test set (1 submission)"),
+                 ("0.1065", "RMSLE, holdout scored once"), ("83", "logged, reproducible experiments")])}
     <div class="abstract"><h2>Abstract</h2>{_md(ABSTRACT)}</div>
     <div class="meta"><b>{AUTHOR}</b> · {DATE} · Code and data: see the repository README.<br>
     Implementation carried out with Claude Code agent teams under the author's methodology and review;

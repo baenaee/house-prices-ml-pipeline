@@ -49,7 +49,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 6. **Regression toward the mean.** Cheap houses are over-predicted and expensive ones under-predicted (part 5).
 7. **One city, 2006–2010.** Nothing here says how the model would behave on other markets or years; time was treated as a feature, not as a split.
 8. **Tooling.** Registry without locking, pickled model artefacts, Optuna study not exactly re-creatable.
-9. **No leaderboard score.** By choice, the file was not submitted, so there is no external confirmation.
+9. **One leaderboard score.** The single Kaggle submission scored 0.12271 on the full test set, matching the 0.1217 estimate. One score confirms the estimate but cannot rank close alternatives, and rank (1,225 of 4,717) is distorted by entries that copied the public true prices.
 
 ## 4. Questions you should expect, with short answers
 

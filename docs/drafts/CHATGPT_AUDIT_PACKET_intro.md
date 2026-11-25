@@ -21,7 +21,7 @@ This document is addressed to an independent reviewer (a person or another AI mo
 - Claimed expected error: about 0.12 (fresh-fold CV 0.1217, fold sd 0.013).
 - Holdout, scored once after the freeze: 0.10645 (95 % bootstrap interval 0.092–0.121).
 - Best alternative: equal-weight average of Lasso and CatBoost, 0.1207 on fresh folds, 0.0010 better, about one third of a standard error; not chosen.
-- Submission file written and validated; not submitted; no leaderboard score is claimed.
+- Submission file written and validated; submitted to Kaggle once after the freeze: 0.12271 on the full test set (recorded afterwards, used for no decision).
 
 ## Reading order
 

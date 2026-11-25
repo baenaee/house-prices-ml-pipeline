@@ -20,7 +20,8 @@ Purpose: state of the project at the end of the research campaign. Earlier check
 | Fresh-fold CV (RepeatedKFold 5x3, seed 7) | **0.12166**, fold sd 0.0131 | E076 |
 | Best alternative: average Lasso + CatBoost (E068) on fresh folds | 0.12066 (−0.0010 vs E066, SE about 0.003) | E077 |
 | Holdout, 219 rows, ONE scoring call | **0.10645**, 95 % bootstrap interval 0.092–0.121 | `experiments/holdout_usage.log`, audit §10.2 |
-| Submission file | `outputs/submissions/E066_all.csv`, 1,459 rows, validated, **not submitted** | audit §10.3 (independent rebuild identical to 3e-16) |
+| Submission file | `outputs/submissions/E066_all.csv`, 1,459 rows, validated; **submitted once** (2026-11-17) | audit §10.3 (independent rebuild identical to 3e-16) |
+| Kaggle test set (all 1,459 houses) | **0.12271**, rank 1,225 of 4,717 on 2026-11-26 | `docs/EXPERIMENT_HISTORY.md` (score recorded 2026-11-26) |
 | Tuning time used | 72 of 180 minutes | audit §9.1 |
 
 The number to quote as expected performance is about 0.12 (fresh-fold CV). The holdout is a consistency check on the favourable side (no house above 4,000 sq ft in it).
@@ -38,7 +39,7 @@ Phase 0, A, B; C1–C8 (ablations, outlier policy, LotFrontage, linear grids, St
 
 ## 5. Open items (owner's decisions, not blockers)
 
-1. Whether to upload `outputs/submissions/E066_all.csv` to Kaggle. If you do, record the public score in `docs/EXPERIMENT_HISTORY.md` and do not tune against it.
+1. ~~Whether to upload the submission to Kaggle.~~ Done: submitted once; score 0.12271 recorded in `docs/EXPERIMENT_HISTORY.md`; nothing tuned against it.
 2. Whether to send `docs/CHATGPT_AUDIT_PACKET.md` to the external reviewer, and which findings to act on.
 3. Optional follow-ups listed as limitations in the report: wider tree-count search; finishing the CatBoost-native study (about 2 h); a segment model or features for very large and very cheap houses; a time-aware validation split.
 

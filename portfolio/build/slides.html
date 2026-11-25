@@ -159,6 +159,7 @@ code { font-family: Consolas, monospace; font-size: 0.9em; background: #f1f0ec; 
         <tr class="hl"><td>Final CatBoost, fresh folds</td><td class="num">0.1217</td></tr>
         <tr><td>Avg Lasso + CatBoost, fresh</td><td class="num">0.1207</td></tr>
         <tr><td>Holdout, scored once</td><td class="num">0.1065</td></tr>
+        <tr class="hl"><td>Kaggle test set, 1 submission</td><td class="num">0.1227</td></tr>
         <tr><td>Predict the mean</td><td class="num">0.399</td></tr>
       </table>
       <p class="small" style="margin-top:10pt">Holdout 95 % interval 0.092–0.121; it contains none of the 4 hardest houses, so I report ≈ 0.12.</p>
@@ -287,7 +288,7 @@ code { font-family: Consolas, monospace; font-size: 0.9em; background: #f1f0ec; 
       </ul>
     </div>
   </div>
-  <div class="callout" style="margin-bottom:14pt"><p class="big">Expected error on new houses: <b>≈ 0.12 RMSLE</b> (≈ 12 % of the price; median holdout error 5.3 %). No leaderboard score — by choice, the leaderboard is one more thing to overfit.</p></div>
+  <div class="callout" style="margin-bottom:14pt"><p class="big">Expected error on new houses: <b>≈ 0.12 RMSLE</b> (≈ 12 % of the price; median holdout error 5.3 %). Kaggle confirmed it: <b>0.1227</b> on all 1,459 test houses, one submission, never tuned against (rank 1,225 / 4,717, top 26 %).</p></div>
   <div class="foot"><span>Built with Claude Code agent teams under my methodology, review and decisions</span><span>12</span></div>
 </section>
 

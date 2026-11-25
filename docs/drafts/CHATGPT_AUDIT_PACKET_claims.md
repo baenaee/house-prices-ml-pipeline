@@ -16,7 +16,7 @@ $PY = "C:\Users\Enrique Baena\anaconda3\envs\houseprices\python.exe"
 
 Test counts below are `passed` lines from pytest. The probes in `tests/test_audit_round2.py` were written by the validation auditor and are independent of the code owners' own tests. Nothing in this section was run on Kaggle, and no submission has been made.
 
-Section F now holds real results (finalists, holdout, submission). Nothing was submitted to Kaggle and no leaderboard score is claimed.
+Section F now holds real results (finalists, holdout, submission). The file was later submitted to Kaggle once; its score (0.12271 on the full test set) is recorded in `docs/EXPERIMENT_HISTORY.md` and was used for no decision.
 
 ---
 
@@ -354,7 +354,7 @@ print("95%% bootstrap interval %.4f - %.4f" % tuple(np.percentile(b, [2.5, 97.5]
 - **Reading:** the score is an unbiased single draw for the model fitted on the 1,241 development rows. It is below the seed-7 CV estimate 0.1217 mainly because the holdout contains no house above 4,000 sq ft of living area: the four such houses (Ids 524, 692, 1183, 1299) are development rows and carry 8.5% of the squared out-of-fold error; without them the seed-42 pooled OOF RMSE falls from 0.1190 to 0.1140. Sampling noise (seed-7 fold scores range 0.103 to 0.150) and the fresh-fold level shift also play a part. The interval is the sampling error of the 219 houses for this fixed model and ignores the variance of the model fit. The holdout does not rank E066 against the average.
 - **Look for:** `forced` true; a second log line; the score reported as the estimate for the model fitted on all rows (that model has seen the holdout and is not what was scored).
 
-### F3. Final submission file: 1,459 rows, valid, not submitted
+### F3. Final submission file: 1,459 rows, valid, submitted once (Kaggle 0.12271)
 
 - **Evidence:** `outputs/submissions/E066_all.csv`, produced by `train --experiment E066 --rows all` (1,460 rows) and `predict` after the holdout was scored; sidecar `outputs/models/E066_all.json`.
 - **Command:**
@@ -370,7 +370,7 @@ print(s.set_index("Id").loc[[1877, 2550, 2593]].round(0).to_dict())
 ```
 
 - **Expected:** `['Id', 'SalePrice'] 1459 True True True`; minimum 41,901, median 156,611, maximum 524,842; Ids 1877, 2550, 2593 predicted 212,580, 268,438, 256,431. An independent refit of E066 on all 1,460 rows from the registry record reproduced every prediction to a relative difference below 1e-15 (audit section 10).
-- **Look for:** an Id order different from the sample; implausible prices (the lowest, 41,901, is a 797 sq ft quality-3 house); any claim of a leaderboard score (none exists).
+- **Look for:** an Id order different from the sample; implausible prices (the lowest, 41,901, is a 797 sq ft quality-3 house); a leaderboard score other than 0.12271, or any change to the model after the submission (none was made).
 
 ### F4. Final numbers in README, research report and study guide
 

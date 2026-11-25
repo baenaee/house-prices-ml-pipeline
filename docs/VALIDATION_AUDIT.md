@@ -401,7 +401,7 @@ Single usage line, forced false; sidecar fields and order of events; no change t
 5. Tuned parameters sit on the edge of the search box (2,000 iterations; LightGBM `min_child_samples` 5); a wider search could change the tuned level slightly, not the conclusion.
 6. Reconstructed cleaning rule C01 (1 training row, 9 test houses), registry writes not atomic (F27), pickled artefacts (F28), pandas/scikit-learn versions pinned (only pandas 2.3.3 run), F30 (runner SE too small), F29/F31/F32 notes.
 7. Independence: this audit is by an agent of the same team; the external reviewer's read of the repository is the independent check.
-8. No Kaggle leaderboard score exists and none is claimed; the file was not submitted.
+8. No Kaggle leaderboard score exists and none is claimed; the file was not submitted. *(Note added 2026-11-26: the owner later submitted the file once; Kaggle scored it 0.12271 on the full test set. Recorded in `docs/EXPERIMENT_HISTORY.md`; nothing was changed as a result.)*
 
 ### 10.8 Final sign-off
 

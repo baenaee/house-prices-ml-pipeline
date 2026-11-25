@@ -11,10 +11,11 @@
 | Best linear model (Lasso), on folds not used for tuning | 0.128 |
 | **Final model (tuned CatBoost), on folds not used for tuning** | **0.122** |
 | Final model on a locked 219-house holdout, scored once | 0.106 |
+| **Final model on Kaggle's test set (1,459 houses, one submission)** | **0.123** |
 
 The expected error of the final model on new houses is about **0.12** on the competition metric, which on the holdout corresponded to a mean absolute price error of about 8 % and a median of 5 %. The holdout came out better than that; with 219 houses, and none of the four hardest houses among them, it is treated as a consistency check and not as the headline.
 
-The submission file is produced and validated. It has deliberately not been submitted: the public leaderboard would be one more score to overfit.
+**External confirmation.** The frozen model was submitted to Kaggle once. On the full test set (1,459 houses it never saw) it scored **0.1227**, against a cross-validated estimate of 0.1217: the honest estimate predicted the real score. Rank 1,225 of 4,717 (top 26 %, 2026-11-26); the top of that leaderboard is made of perfect scores copied from the publicly available true prices. The score was recorded after the fact and never used to change anything.
 
 ## How it was done
 

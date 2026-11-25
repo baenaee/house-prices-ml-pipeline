@@ -92,7 +92,7 @@ Things to notice:
 
 - There is no cross-validated score for this last model and there cannot be one. Its expected error is inferred from the procedure's CV score. That is why the procedure, not a fitted object, is what gets frozen and evaluated.
 - The predicted prices stop at 525 thousand while training prices reach 755 thousand. A model that minimises squared error on the log scale shrinks its predictions toward the centre; part 5 shows the same pattern in the residuals by price decile.
-- The file was not submitted. Kaggle's public leaderboard is one more score on one more sample; using it to adjust the model would turn it into a tuning set.
+- The file was submitted to Kaggle once, after everything above was frozen. Kaggle scores it on the whole test set (1,459 houses): **0.12271**, against the fresh-fold estimate of 0.1217. That agreement is the point: the honest cross-validated number predicted the score on data the project never saw. The score was recorded and not used for anything; adjusting the model to it would turn the leaderboard into a tuning set.
 
 ## Self-check questions
 

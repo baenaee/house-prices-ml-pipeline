@@ -1609,7 +1609,7 @@ Things to notice:
 
 - There is no cross-validated score for this last model and there cannot be one. Its expected error is inferred from the procedure's CV score. That is why the procedure, not a fitted object, is what gets frozen and evaluated.
 - The predicted prices stop at 525 thousand while training prices reach 755 thousand. A model that minimises squared error on the log scale shrinks its predictions toward the centre; part 5 shows the same pattern in the residuals by price decile.
-- The file was not submitted. Kaggle's public leaderboard is one more score on one more sample; using it to adjust the model would turn it into a tuning set.
+- The file was submitted to Kaggle once, after everything above was frozen. Kaggle scores it on the whole test set (1,459 houses): **0.12271**, against the fresh-fold estimate of 0.1217. That agreement is the point: the honest cross-validated number predicted the score on data the project never saw. The score was recorded and not used for anything; adjusting the model to it would turn the leaderboard into a tuning set.
 
 ### Self-check questions
 
@@ -1877,7 +1877,7 @@ This part is the revision sheet. It lists every binding decision with the one-se
 6. **Regression toward the mean.** Cheap houses are over-predicted and expensive ones under-predicted (part 5).
 7. **One city, 2006–2010.** Nothing here says how the model would behave on other markets or years; time was treated as a feature, not as a split.
 8. **Tooling.** Registry without locking, pickled model artefacts, Optuna study not exactly re-creatable.
-9. **No leaderboard score.** By choice, the file was not submitted, so there is no external confirmation.
+9. **One leaderboard score.** The single Kaggle submission scored 0.12271 on the full test set, matching the 0.1217 estimate. One score confirms the estimate but cannot rank close alternatives, and rank (1,225 of 4,717) is distorted by entries that copied the public true prices.
 
 ### 4. Questions you should expect, with short answers
 

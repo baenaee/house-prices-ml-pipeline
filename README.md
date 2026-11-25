@@ -4,11 +4,12 @@
 ![python](https://img.shields.io/badge/python-3.12-blue)
 ![model](https://img.shields.io/badge/final%20model-CatBoost-orange)
 ![RMSLE](https://img.shields.io/badge/RMSLE%20(fresh%20CV)-0.1217-success)
+![Kaggle](https://img.shields.io/badge/Kaggle%20test%20RMSLE-0.1227%20(top%2026%25)-20BEFF)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 
 **Portfolio documents:** [Technical report (PDF)](portfolio/HousePrices_Technical_Report.pdf) · [Slides (PDF)](portfolio/HousePrices_Slides.pdf) · [Model card](docs/MODEL_CARD.md) · [Executive summary](docs/EXECUTIVE_SUMMARY.md)
 
-> **Status (2026-11-17):** complete. Final model frozen (single CatBoost, registry id E066), holdout scored once, submission file written and validated but not submitted. See `docs/EXECUTIVE_SUMMARY.md` for the one-page version and `docs/RESEARCH_REPORT.md` for the full account.
+> **Status (2026-11-17):** complete. Final model frozen (single CatBoost, registry id E066), holdout scored once, submission file written, validated and submitted once: **Kaggle RMSLE 0.12271** on the full test set (rank 1,225 of 4,717, top 26 %, on 2026-11-26). See `docs/EXECUTIVE_SUMMARY.md` for the one-page version and `docs/RESEARCH_REPORT.md` for the full account.
 
 This repository turns a careful exploratory notebook (78 cells of cleaning and EDA, 17 documented cleaning rules) into a complete, leakage-safe modelling project for the Kaggle competition *House Prices: Advanced Regression Techniques*. It was designed and directed by Enrique Baena and implemented with Claude Code — a research director agent coordinating four specialist agents (feature research, modelling, ensembles, validation audit) under the author's methodological rules and review — with every experiment logged, every methodological decision recorded with its evidence, and an independent auditor reading all pipeline code.
 
@@ -40,8 +41,9 @@ Metric: RMSE on `log1p(SalePrice)` (identical to the competition's RMSLE). Model
 | cross-validation on folds not used for tuning or for generating candidates, used once under a pre-registered rule to choose among eight finalists (RepeatedKFold 5x3, seed 7) | **0.1217** | E076 |
 | the same for the Lasso + CatBoost average (not chosen: 0.0010 better, one third of a standard error) | 0.1207 | E077 |
 | single-use holdout, 219 houses, scored once after the freeze (95 % bootstrap interval 0.092–0.121) | **0.1065** | `experiments/holdout_usage.log` |
+| Kaggle test set, all 1,459 houses, one submission of the frozen model (recorded afterwards, used for no decision) | **0.1227** | Kaggle leaderboard, rank 1,225 of 4,717 (2026-11-26) |
 
-Expected error on new houses: about 0.12. The holdout is a consistency check that came out on the favourable side (it contains none of the four hardest houses); it is not the headline. Submission file: `outputs/submissions/E066_all.csv` (not submitted).
+Expected error on new houses: about 0.12. The holdout is a consistency check that came out on the favourable side (it contains none of the four hardest houses); it is not the headline. Submission file: `outputs/submissions/E066_all.csv`, submitted once; Kaggle's score on the whole test set, 0.1227, matches the cross-validated estimate. A public [Kaggle notebook](portfolio/kaggle/house-prices-leakage-safe-pipeline.ipynb) rebuilds the model from this repository and reproduces the same score.
 
 Selection-fold scores are optimistic (0.002–0.003 measured by the auditor on linear grids, `docs/VALIDATION_AUDIT.md` §7; 0.003–0.004 for the eight finalists); finalists are therefore re-scored on folds they were not selected on, and differences below 0.003 are not treated as wins.
 

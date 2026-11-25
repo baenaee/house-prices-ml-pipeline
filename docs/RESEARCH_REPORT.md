@@ -9,7 +9,7 @@ Final version, 2026-11-17. Every number comes from `experiments/registry.jsonl` 
 - **Holdout:** 0.1065 (95 % bootstrap interval 0.092–0.121) on 219 houses, evaluated once after the procedure was frozen and approved by the independent auditor. This is inside the range the auditor wrote down beforehand (0.100–0.145) and on its favourable side; it is a consistency check, not a better estimate (section 8).
 - **Against the baselines:** predicting the mean scores 0.399, a numeric-only linear regression 0.160. On the selection folds the final model removes about 70 % of the mean baseline's error (0.1181 against 0.3987).
 - **The best alternative** is the equal-weight average of Lasso and CatBoost: 0.1207 on fresh folds, 0.0010 better than the frozen model, a difference of one third of a standard error. It was not chosen, by a rule fixed before the comparison was read (section 7).
-- **Submission file:** `outputs/submissions/E066_all.csv`, validated, not submitted.
+- **Kaggle:** `outputs/submissions/E066_all.csv` was submitted once after the freeze. Kaggle's score on the whole test set (1,459 houses) is **0.12271**, 0.001 from the fresh-fold estimate; rank 1,225 of 4,717 on 2026-11-26 (section 10).
 
 ## 2. Problem, data and protocol
 
@@ -162,7 +162,7 @@ The error is concentrated: the worst 5 rows carry 13.6 % of the squared error an
 
 ## 10. Final fit and submission file
 
-`train --experiment E066 --rows all` (1,460 rows) and `predict` produced `outputs/submissions/E066_all.csv`: 1,459 rows, columns `Id,SalePrice`, Id order equal to `sample_submission.csv`, prices from 41,901 to 524,842 (median 156,611; training median 163,000, maximum 755,000). The three test-only anomalies were checked by hand: Id 2593 (garage year 2207) 256,431; Id 1877 212,580; Id 2550 (5,095 sq ft, Edwards, partial sale) 268,438. The file has not been submitted to Kaggle.
+`train --experiment E066 --rows all` (1,460 rows) and `predict` produced `outputs/submissions/E066_all.csv`: 1,459 rows, columns `Id,SalePrice`, Id order equal to `sample_submission.csv`, prices from 41,901 to 524,842 (median 156,611; training median 163,000, maximum 755,000). The three test-only anomalies were checked by hand: Id 2593 (garage year 2207) 256,431; Id 1877 212,580; Id 2550 (5,095 sq ft, Edwards, partial sale) 268,438. The file was submitted to Kaggle once, after the freeze and the holdout evaluation, and scored **0.12271** on the whole test set (the leaderboard is computed on all 1,459 test houses), rank 1,225 of 4,717 teams on 2026-11-26 (top 26 %). This is the only evaluation on data from outside the training file, and it agrees with the fresh-fold estimate (0.1217) within 0.001, well inside the fold standard deviation (0.013). The score was recorded after the fact and used for no decision. A public Kaggle notebook that rebuilds the model from the GitHub repository produced an identical submission and score. The leaderboard's top entries score 0.00000, possible only by copying the publicly available true prices, so the rank understates the model.
 
 ## 11. Hypotheses, as stated before the evidence
 
@@ -183,7 +183,7 @@ The error is concentrated: the worst 5 rows carry 13.6 % of the squared error an
 6. The data cover one city over 2006–2010; validation was random, not time-ordered.
 7. The CatBoost-native comparison is partial (5 of 25 trials).
 8. Tooling: registry without locking (single writer by process), joblib artefacts, an Optuna study that is not exactly re-creatable after the Stage 2 resume. Registered results do not depend on any of these.
-9. There is no leaderboard score, by decision.
+9. There is a single leaderboard score (0.12271). One score on 1,459 houses confirms the estimate; it cannot rank close alternatives, and it was not used to.
 
 ## 13. Reproduction
 
