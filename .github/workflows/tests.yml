@@ -12,8 +12,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -23,13 +23,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-ci.txt
       - name: Download the Kaggle competition data
-        # The data are not in the repository (competition rule 7.B). Add two repository secrets,
-        # KAGGLE_USERNAME and KAGGLE_KEY, from a Kaggle account that accepted the competition rules.
+        # The data are not in the repository (competition rule 7.B). Repository secrets, from a Kaggle
+        # account that accepted the competition rules: KAGGLE_KEY = the API token from
+        # kaggle.com/settings/api (new-style token, or a legacy 32-character key together with
+        # KAGGLE_USERNAME).
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
         run: |
-          if (-not $env:KAGGLE_USERNAME -or -not $env:KAGGLE_KEY) { Write-Error "Repository secrets KAGGLE_USERNAME and KAGGLE_KEY are not set; see scripts/download_data.py"; exit 1 }
+          if (-not $env:KAGGLE_KEY) { Write-Error "Repository secret KAGGLE_KEY is not set; see scripts/download_data.py"; exit 1 }
+          if ($env:KAGGLE_KEY -notmatch '^[0-9a-f]{32}$') {
+            # New-style Kaggle API token: the current CLI reads it from KAGGLE_API_TOKEN.
+            $env:KAGGLE_API_TOKEN = $env:KAGGLE_KEY
+            Remove-Item Env:KAGGLE_KEY
+            Remove-Item Env:KAGGLE_USERNAME -ErrorAction SilentlyContinue
+          }
           pip install kaggle
           python scripts/download_data.py
       - name: Run the test suite

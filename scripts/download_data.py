@@ -4,8 +4,10 @@ The data are not in this repository: the competition rules (section 7.B) forbid 
 them. Anyone who has a Kaggle account and has accepted the competition rules can download them:
 
     1. Accept the rules once: https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques/rules
-    2. Create an API token (kaggle.com -> Settings -> API -> Create New Token) and either save
-       kaggle.json in ~/.kaggle/ or set KAGGLE_USERNAME and KAGGLE_KEY in the environment.
+    2. Create an API token at https://www.kaggle.com/settings/api and give it to the Kaggle CLI:
+       set the KAGGLE_API_TOKEN environment variable, or save the token in ~/.kaggle/access_token,
+       or run `kaggle auth login`. (Legacy keys: kaggle.json in ~/.kaggle/, or KAGGLE_USERNAME and
+       KAGGLE_KEY.)
     3. pip install kaggle
     4. python scripts/download_data.py
 
@@ -63,11 +65,12 @@ def main() -> int:
         return 0
 
     zip_path = dest / f"{COMPETITION}.zip"
-    print(f"Downloading {COMPETITION} with the Kaggle CLI ...")
+    print(f"Downloading {COMPETITION} with the Kaggle CLI ...", flush=True)
     result = subprocess.run(kaggle_cmd() + ["competitions", "download", "-c", COMPETITION, "-p", str(dest), "--force"])
     if result.returncode != 0 or not zip_path.exists():
         print("Download failed. Check that you accepted the competition rules on kaggle.com and that your "
-              "API token is set (~/.kaggle/kaggle.json, or KAGGLE_USERNAME and KAGGLE_KEY).", file=sys.stderr)
+              "API token is set (KAGGLE_API_TOKEN, ~/.kaggle/access_token or `kaggle auth login`; legacy: "
+              "~/.kaggle/kaggle.json or KAGGLE_USERNAME and KAGGLE_KEY).", file=sys.stderr)
         return 1
     with zipfile.ZipFile(zip_path) as zf:
         for name in EXPECTED:
