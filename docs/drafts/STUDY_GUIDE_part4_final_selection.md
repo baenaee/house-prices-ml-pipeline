@@ -55,7 +55,7 @@ A second argument, specific to this data, is about the test set. Test house Id 2
 
 ## 4. What "frozen" means
 
-D22 records the registry id (E066), the configuration hash (`be58905cb40a`), the builder (`houseprices.models:build_catboost`), the six hyper-parameters at full precision, the feature set, the row filter and the target. The freeze was committed to Git (`23f56ac`) before anything else happened, so the history proves the order of events. From that commit on, nothing about the procedure may change in response to what the holdout says. If the holdout had come back terrible, the correct response would have been to look for a bug and report the bad number, not to retune.
+D22 records the registry id (E066), the configuration hash (`be58905cb40a`), the builder (`houseprices.models:build_catboost`), the six hyper-parameters at full precision, the feature set, the row filter and the target. The freeze was committed to Git (`95c3e86`) before anything else happened, so the history proves the order of events. From that commit on, nothing about the procedure may change in response to what the holdout says. If the holdout had come back terrible, the correct response would have been to look for a bug and report the bad number, not to retune.
 
 ## 5. The single holdout evaluation
 

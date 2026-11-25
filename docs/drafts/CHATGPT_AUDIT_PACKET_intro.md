@@ -33,7 +33,7 @@ This document is addressed to an independent reviewer (a person or another AI mo
 | `docs/VALIDATION_AUDIT.md` | the internal audit: findings F1–F36, sign-offs, the pre-registered decision rule (§9) and holdout range (§9.9), the final round (§10) |
 | `src/houseprices/validation.py`, `data.py`, `models.py`, `preprocess.py`, `ensemble.py` | the code that carries the methodology |
 | `experiments/registry.jsonl`, `experiments/holdout_usage.log`, `experiments/finalists/*.csv` | the raw records |
-| `git log` | the order of events: freeze `23f56ac` → approval `264f43f` → holdout `c6943b1` → submission `385a542` |
+| `git log` | the order of events: freeze `95c3e86` → approval `5beae61` → holdout `701b06f` → submission `b249ba9` |
 
 ## Where the authors think the project is weakest
 
@@ -49,7 +49,7 @@ This document is addressed to an independent reviewer (a person or another AI mo
 
 ## Questions we would like answered
 
-- Is there any path by which holdout rows, or statistics computed from them, could have influenced a model, a hyper-parameter or a decision before commit `c6943b1`?
+- Is there any path by which holdout rows, or statistics computed from them, could have influenced a model, a hyper-parameter or a decision before commit `701b06f`?
 - Is the nested protocol for blending and stacking correct as implemented in `ensemble.py` (inner out-of-fold predictions inside `fit`)?
 - Is the outlier-policy experiment (filters on training folds only) correctly implemented in `validation.iter_folds`, and is the conclusion (keep all rows) justified by E049–E054?
 - Are the statements about selection optimism (0.003–0.004) and about the holdout (consistency check, not headline) worded no more strongly than the evidence allows?

@@ -1,0 +1,43 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 430' width='1000' height='430'><defs><marker id='ah' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto-start-reverse'><path d='M0,0 L10,5 L0,10 z' fill='#52514e'/></marker></defs><rect width='1000' height='430' fill='white'/><text x='30' y='32' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='15' font-weight='700' fill='#0b0b0b'>How the 1,460 labelled houses are used</text>
+<rect x='30' y='55' width='765' height='44' rx='6' fill='#f3f7fd' stroke='#2a78d6'/>
+<rect x='795' y='55' width='135' height='44' rx='6' fill='#fdf1ec' stroke='#eb6834'/>
+<text x='412.5' y='82' text-anchor='middle' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='12.5' font-weight='700' fill='#0b0b0b'>development: 1,241 rows (all experiments, tuning, selection)</text>
+<text x='862.5' y='76' text-anchor='middle' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='12' font-weight='700' fill='#0b0b0b'>holdout</text>
+<text x='862.5' y='92' text-anchor='middle' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='11' font-weight='400' fill='#52514e'>219 rows</text>
+<text x='940' y='82' text-anchor='middle' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='1' font-weight='400' fill='#52514e'></text>
+<text x='30' y='135' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='12' font-weight='700' fill='#2a78d6'>Selection CV: KFold(5, shuffle, seed 42) - used to choose features, hyper-parameters, ensembles</text>
+<rect x='31' y='148' width='150' height='20' rx='3' fill='#2a78d6'/>
+<rect x='184' y='148' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='337' y='148' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='490' y='148' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='643' y='148' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<text x='805.0' y='163' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>fold 1</text>
+<rect x='31' y='174' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='184' y='174' width='150' height='20' rx='3' fill='#2a78d6'/>
+<rect x='337' y='174' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='490' y='174' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='643' y='174' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<text x='805.0' y='189' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>fold 2</text>
+<rect x='31' y='200' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='184' y='200' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='337' y='200' width='150' height='20' rx='3' fill='#2a78d6'/>
+<rect x='490' y='200' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='643' y='200' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<text x='805.0' y='215' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>fold 3</text>
+<rect x='31' y='226' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='184' y='226' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='337' y='226' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='490' y='226' width='150' height='20' rx='3' fill='#2a78d6'/>
+<rect x='643' y='226' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<text x='805.0' y='241' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>fold 4</text>
+<rect x='31' y='252' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='184' y='252' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='337' y='252' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='490' y='252' width='150' height='20' rx='3' fill='#dbe8f8'/>
+<rect x='643' y='252' width='150' height='20' rx='3' fill='#2a78d6'/>
+<text x='805.0' y='267' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>fold 5</text>
+<text x='30' y='298' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='10.5' font-weight='400' fill='#52514e'>dark = validation part of the fold (scored), light = training part (fits imputers, skew choice, encoder, scaler, model, ensemble weights)</text>
+<text x='30' y='335' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='12' font-weight='700' fill='#eb6834'>Finalist check: RepeatedKFold(5 x 3, seed 7) - 15 new partitions, used once to pick among 8 finalists</text>
+<text x='30' y='362' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='12' font-weight='700' fill='#eb6834'>Holdout: scored ONCE after the model was frozen in Git; score_holdout_once() refuses a second call.</text>
+<text x='30' y='395' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#52514e'>Why three layers? A score you used to choose is optimistic (measured here: +0.003 to +0.004).</text>
+<text x='30' y='414' text-anchor='start' font-family='Segoe UI, Helvetica, Arial, sans-serif' font-size='11.5' font-weight='400' fill='#52514e'>Fresh folds correct that; the holdout is data no decision ever touched.</text></svg>

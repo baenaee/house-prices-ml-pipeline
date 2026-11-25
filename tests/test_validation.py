@@ -327,6 +327,9 @@ def test_final_holdout_log_is_one_unforced_E066_entry_and_matches_saved_predicti
     assert ev["frozen_experiment_id"] == "E066" and ev["forced"] is False and ev["n_previous_uses"] == 0
     assert ev["n_holdout"] == 219
     path = config.EXPERIMENTS_DIR / "finalists" / "holdout_predictions_E066.csv"
+    if not path.exists():
+        # Not published: it contains the target values of the 219 holdout rows (competition rule 7.B).
+        pytest.skip("holdout predictions are kept locally, not in the public repository")
     h = pd.read_csv(path)
     ids = json.loads((config.EXPERIMENTS_DIR / "holdout_ids.json").read_text(encoding="utf-8"))["holdout_ids"]
     assert set(h[config.ID_COL]) == set(ids) and len(h) == 219

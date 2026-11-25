@@ -2,7 +2,7 @@ DRAFT — status: complete (final round 2026-11-17: claims A-E verified, new cla
 
 # Claims to verify
 
-Draft section for `docs/CHATGPT_AUDIT_PACKET.md`. Status date: 2026-11-17. Repository state: 83 registry records, 217 tests in 9 test files (216 pass until the stale test named in finding F34 is updated; 217 afterwards), HEAD after commit `385a542`.
+Draft section for `docs/CHATGPT_AUDIT_PACKET.md`. Status date: 2026-11-17. Repository state: 83 registry records, 217 tests in 9 test files (216 pass until the stale test named in finding F34 is updated; 217 afterwards), HEAD after commit `b249ba9`.
 
 ## How to use this section
 
@@ -258,13 +258,13 @@ for i in c.index:
 
 ### D1. The holdout was carved once, has 219 ids, and was scored exactly once, after the procedure was frozen
 
-- **Evidence:** `experiments/holdout_ids.json` (single commit `582bf86`); `experiments/holdout_usage.log` (one line); commits `23f56ac` (freeze, ruling D22), `264f43f` (scoring script and auditor approval with the pre-registered range, `docs/VALIDATION_AUDIT.md` 9.9), `c6943b1` (the scoring).
+- **Evidence:** `experiments/holdout_ids.json` (single commit `8224e40`); `experiments/holdout_usage.log` (one line); commits `95c3e86` (freeze, ruling D22), `5beae61` (scoring script and auditor approval with the pre-registered range, `docs/VALIDATION_AUDIT.md` 9.9), `701b06f` (the scoring).
 - **Command:**
 
 ```powershell
 Get-Content experiments\holdout_usage.log
 git log --oneline -- experiments/holdout_ids.json
-git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
+git log --format="%h %ad %s" --date=iso 95c3e86..701b06f
 ```
 
 - **Expected:** exactly one JSON line: `frozen_experiment_id` E066, `n_holdout` 219, `rmse_log` 0.10645, `forced` false, `n_previous_uses` 0; one commit for `holdout_ids.json`; the freeze commit precedes the scoring commit.
@@ -287,7 +287,7 @@ git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
 
 - **Evidence:** `train.fit_registered`; sidecar keys `includes_holdout_rows`, `holdout_scored_before_fit`; `outputs/models/E066_development.json` (rows development, 1,241 rows, `holdout_scored_before_fit` false, written 00:40:42, before the log line at 00:40:45) and `E066_all.json` (rows all, 1,460 rows, `holdout_scored_before_fit` true, 00:41:04).
 - **Command:** `& $PY -m pytest tests/test_audit_round2.py -k "f24"` and read the two sidecars. (Do NOT run `train --rows all` to test the refusal now: the holdout is scored, so the command would succeed and write a file.)
-- **Expected:** the probe passes (refusal while the usage log is empty, using a temporary log); sidecar fields as listed; `git diff --stat 23f56ac HEAD -- src` is empty.
+- **Expected:** the probe passes (refusal while the usage log is empty, using a temporary log); sidecar fields as listed; `git diff --stat 95c3e86 HEAD -- src` is empty.
 - **Look for:** an artefact named `*_all.joblib` older than the log line, or a `*_development` sidecar with `includes_holdout_rows` true.
 
 ### D5. `predict.py` checks its output before writing a submission
@@ -302,10 +302,11 @@ git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
 
 ### E1. The original files are unchanged
 
-- **Evidence:** the SHA-256 manifest in `docs/AUDIT_2026-11-11.md` and the dated backup ZIP named there; commit `fedba71`.
+- **Evidence:** the SHA-256 manifest in `docs/AUDIT_2026-11-11.md` and the dated backup ZIP named there; commit `3823292`.
 - **Command:** `Get-FileHash -Algorithm SHA256 HousePricing.ipynb, train.csv, test.csv, data_description.txt, sample_submission.csv | Select-Object Hash, Path`
 - **Expected hashes (start of each):** `HousePricing.ipynb` 1BB32B57, `train.csv` 1E18ADDF, `test.csv` 8FDD3D82, `data_description.txt` 356A4670, `sample_submission.csv` F19E9969 (checked on 2026-11-13 by the auditor; full hashes are in the manifest).
 - **Look for:** a hash mismatch, or a cleaning step in `src/` that writes to a root CSV (`cleaning.py` only reads).
+- **Note (2026-11-25):** the CSV files are no longer in the public repository (competition rule 7.B). Download them with `python scripts/download_data.py`, which checks the same SHA-256 values, before running this command.
 
 ---
 
@@ -334,7 +335,7 @@ for i in ["E077","E081","E078","E076","E079","E080","E083","E082"]:
 
 ### F2. Single holdout score of the frozen model: 0.10645, 95% bootstrap interval 0.092 to 0.121
 
-- **Evidence:** `experiments/holdout_usage.log` (one line, `forced` false); `experiments/finalists/holdout_predictions_E066.csv` (219 Ids equal to `holdout_ids.json`); `docs/VALIDATION_AUDIT.md` sections 9.9 and 10.
+- **Evidence:** `experiments/holdout_usage.log` (one line, `forced` false); `experiments/finalists/holdout_predictions_E066.csv` (219 Ids equal to `holdout_ids.json`; kept in the author's local copy only since 2026-11-25, because it contains the holdout target values); `docs/VALIDATION_AUDIT.md` sections 9.9 and 10.
 - **Command:**
 
 ```powershell

@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<base href="{{BASE}}">
+<title>House Prices — leakage-safe ML pipeline (slides)</title>
+<style>
+@page { size: 13.333in 7.5in; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; color: #1d1d1b; }
+.slide { width: 13.333in; height: 7.5in; padding: 0.55in 0.7in 0.5in; position: relative; overflow: hidden;
+         break-after: page; display: flex; flex-direction: column; background: #fff; }
+.slide:last-child { break-after: auto; }
+.kicker { font-size: 13pt; letter-spacing: .12em; text-transform: uppercase; color: #2a78d6; font-weight: 600; }
+h1 { font-size: 30pt; line-height: 1.15; margin: 6pt 0 14pt; color: #0b0b0b; }
+h2 { font-size: 17pt; color: #1b4f8f; margin-bottom: 8pt; }
+p, li { font-size: 16pt; line-height: 1.4; }
+ul { padding-left: 22pt; }
+li { margin-bottom: 7pt; }
+.small { font-size: 12.5pt; color: #52514e; }
+.foot { position: absolute; bottom: 0.25in; left: 0.7in; right: 0.7in; display: flex; justify-content: space-between;
+        font-size: 10pt; color: #8a8984; }
+.body { flex: 1; display: flex; gap: 0.4in; min-height: 0; }
+.col { flex: 1; min-width: 0; }
+.center { align-items: center; justify-content: center; }
+img.full { max-width: 100%; max-height: 5.35in; display: block; margin: 0 auto; }
+img.half { max-width: 100%; max-height: 4.7in; display: block; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14pt; margin-top: 8pt; }
+.tile { border: 1.5px solid #dcdad4; border-radius: 12px; padding: 14pt 16pt; }
+.tile .v { font-size: 30pt; font-weight: 700; color: #1b4f8f; line-height: 1.1; }
+.tile .l { font-size: 12.5pt; color: #52514e; margin-top: 4pt; }
+.callout { background: #f3f7fd; border-left: 5px solid #2a78d6; border-radius: 8px; padding: 12pt 16pt; margin-top: 10pt; }
+.callout.orange { background: #fdf1ec; border-color: #eb6834; }
+.big { font-size: 20pt; line-height: 1.35; }
+table { border-collapse: collapse; width: 100%; font-size: 13pt; }
+th, td { border-bottom: 1px solid #e6e5e1; padding: 6pt 8pt; text-align: left; }
+th { color: #52514e; font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.hl td { background: #fdf1ec; font-weight: 700; }
+.title-slide { background: linear-gradient(135deg, #123a6b 0%, #1b4f8f 45%, #2a78d6 100%); color: #fff; justify-content: center; }
+.title-slide h1 { color: #fff; font-size: 42pt; max-width: 10.5in; }
+.title-slide .kicker { color: #cfe2fb; }
+.title-slide p { color: #e6effa; font-size: 19pt; max-width: 10in; }
+.title-slide .who { margin-top: 30pt; font-size: 15pt; color: #cfe2fb; }
+.title-slide .foot { color: #cfe2fb; }
+.num-badge { display: inline-block; background: #2a78d6; color: #fff; border-radius: 50%; width: 30pt; height: 30pt;
+             text-align: center; line-height: 30pt; font-weight: 700; font-size: 14pt; margin-right: 8pt; }
+.steps li { list-style: none; margin-left: -22pt; margin-bottom: 11pt; }
+code { font-family: Consolas, monospace; font-size: 0.9em; background: #f1f0ec; padding: 0 4px; border-radius: 4px; }
+
+.lbox { border-radius: 12px; padding: 12pt 16pt; border: 2px solid; }
+.lbox h2 { margin-bottom: 4pt; }
+.lbox .sub { font-size: 12.5pt; color: #52514e; margin-bottom: 8pt; }
+.lbox li { font-size: 14pt; margin-bottom: 5pt; }
+.lbox.safe { background: #eef8f3; border-color: #1baf7a; }
+.lbox.safe h2 { color: #0e7a53; }
+.lbox.fold { background: #fdf1ec; border-color: #eb6834; }
+.lbox.fold h2 { color: #b5461b; }
+.bar { display: flex; height: 40pt; border-radius: 8px; overflow: hidden; font-size: 13pt; font-weight: 600; }
+.bar div { display: flex; align-items: center; justify-content: center; }
+.folds { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4pt; margin: 6pt 0; }
+.folds div { height: 15pt; border-radius: 3pt; background: #dbe8f8; }
+.folds div.v { background: #2a78d6; }
+.layer { font-size: 13.5pt; margin-top: 12pt; }
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide title-slide">
+  <div class="kicker">Machine learning project · Kaggle House Prices (Ames)</div>
+  <h1>A leakage-safe, reproducible ML pipeline for house-price prediction</h1>
+  <p>83 logged experiments · nested cross-validation · single-use holdout · tuned CatBoost with RMSLE ≈ 0.12</p>
+  <div class="who">Enrique Baena · Data Science &amp; Engineering, UC3M · November 2026</div>
+  <div class="foot"><span>github.com/baenaee/house-prices-ml-pipeline</span><span>1</span></div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h1>Predict the sale price of a house from 79 descriptive columns</h1>
+  <div class="body">
+    <div class="col">
+      <ul>
+        <li><b>Data:</b> 1,460 houses with prices, 1,459 to predict (Ames, Iowa, 2006–2010)</li>
+        <li><b>Features:</b> sizes, quality grades, neighbourhood, ages, garage, basement… many missing values that mean "feature absent"</li>
+        <li><b>Metric:</b> RMSE of log price (RMSLE) — errors are relative, so 0.12 ≈ a typical 12 % price error</li>
+        <li><b>Small data:</b> validation noise is as large as most model differences</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="callout"><p class="big"><b>My goal was not the leaderboard.</b><br>It was a number I could defend: every score measured on data that played no part in producing it.</p></div>
+      <div class="callout orange"><p>Starting point: my own exploratory notebook with <b>17 documented cleaning rules</b> and no model.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>House Prices · leakage-safe ML</span><span>2</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">The ML flow</div>
+  <h1>The ML flow, end to end</h1>
+  <div class="body center"><img class="full" src="portfolio/figures/pipeline_overview.svg" alt="pipeline"></div>
+  <div class="foot"><span>Green: deterministic · Blue: refitted in every CV fold · Orange: decisions and guarded steps</span><span>3</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Validation protocol</div>
+  <h1>Three layers of data: chosen scores are too good</h1>
+  <div class="body">
+    <div class="col" style="flex:1.5">
+      <div class="bar"><div style="flex:1241;background:#f3f7fd;border:2px solid #2a78d6;border-radius:8px 0 0 8px">development · 1,241 rows</div><div style="flex:219;background:#fdf1ec;border:2px solid #eb6834;border-radius:0 8px 8px 0">holdout</div></div>
+      <p class="layer" style="color:#1b4f8f"><b>1 · Selection folds</b> — KFold(5, shuffle, seed 42): dark = validation part</p>
+      <div style="width:85%"><div class="folds"><div class="v"></div><div class=""></div><div class=""></div><div class=""></div><div class=""></div></div><div class="folds"><div class=""></div><div class="v"></div><div class=""></div><div class=""></div><div class=""></div></div><div class="folds"><div class=""></div><div class=""></div><div class="v"></div><div class=""></div><div class=""></div></div><div class="folds"><div class=""></div><div class=""></div><div class=""></div><div class="v"></div><div class=""></div></div><div class="folds"><div class=""></div><div class=""></div><div class=""></div><div class=""></div><div class="v"></div></div></div>
+      <p class="layer" style="color:#b5461b"><b>2 · Fresh folds</b> — RepeatedKFold(5×3, seed 7), used once to rank 8 finalists</p>
+      <p class="layer" style="color:#b5461b"><b>3 · Holdout</b> — scored once, after the model was frozen in Git</p>
+    </div>
+    <div class="col">
+      <ul>
+        <li><b>Holdout first:</b> 219 houses (15 %) locked, stratified by price</li>
+        <li><b>Selection folds:</b> every choice made on 5-fold CV</li>
+        <li><b>Fresh folds:</b> finalists re-scored on 15 new partitions</li>
+        <li><b>Holdout once:</b> after freezing; code refuses a second call</li>
+      </ul>
+      <div class="callout"><p>Rule written <b>before</b> reading results: an ensemble must beat the single model by ≥ 0.001 and &gt; 1 standard error.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>House Prices · leakage-safe ML</span><span>4</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">No leakage by construction</div>
+  <h1>Anything that learns from rows lives inside the fold</h1>
+  <div class="body">
+    <div class="col" style="flex:1.1"><div class="lbox safe"><h2>Safe before the split</h2><div class="sub">output for a row depends on that row only</div><ul>
+        <li>TotalSF = basement + 1st + 2nd floor</li><li>OverallQual × GrLivArea</li><li>"no garage" when garage area is 0</li><li>quality labels → ordered numbers</li><li>log1p of the target</li></ul></div></div>
+    <div class="col" style="flex:1.1"><div class="lbox fold"><h2>Must be inside the fold</h2><div class="sub">output depends on statistics of other rows</div><ul>
+        <li>LotFrontage ← neighbourhood median</li><li>which columns count as "skewed"</li><li>one-hot categories, scaler mean/sd</li><li>outlier removal (training side only)</li><li>ensemble weights, hyper-parameters</li></ul></div></div>
+    <div class="col">
+      <p>Every fitted step is part of one scikit-learn <code>Pipeline</code>, cloned and refitted on each training fold; validation rows are only transformed.</p>
+      <div class="callout"><p><b>Leakage safety is a property of the structure, not of discipline.</b></p></div>
+    </div>
+  </div>
+  <div class="foot"><span>House Prices · leakage-safe ML</span><span>5</span></div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">Results</div>
+  <h1>From 0.399 to 0.118: each step a logged, reproducible experiment</h1>
+  <div class="body">
+    <div class="col" style="flex:1.5"><img class="half" src="portfolio/figures/results_ladder.png" alt="ladder"></div>
+    <div class="col">
+      <table>
+        <tr><th>Honest estimate</th><th class="num">RMSLE</th></tr>
+        <tr class="hl"><td>Final CatBoost, fresh folds</td><td class="num">0.1217</td></tr>
+        <tr><td>Avg Lasso + CatBoost, fresh</td><td class="num">0.1207</td></tr>
+        <tr><td>Holdout, scored once</td><td class="num">0.1065</td></tr>
+        <tr><td>Predict the mean</td><td class="num">0.399</td></tr>
+      </table>
+      <p class="small" style="margin-top:10pt">Holdout 95 % interval 0.092–0.121; it contains none of the 4 hardest houses, so I report ≈ 0.12.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Selection-fold scores on the left; fresh-fold and holdout scores on the right</span><span>6</span></div>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">Finding 1</div>
+  <h1>Deleting the "famous outliers" made every model worse</h1>
+  <div class="body">
+    <div class="col" style="flex:1.5"><img class="half" src="portfolio/figures/outlier_policy.png" alt="outliers"></div>
+    <div class="col">
+      <p>Public notebooks delete two huge, cheap houses and report a better score.</p>
+      <p style="margin-top:10pt">Removed from <b>training folds only</b> — validation keeps every house — the error rose by <b>0.004–0.009</b> for linear models.</p>
+      <div class="callout orange"><p>The usual "gain" comes from deleting hard houses from the <b>validation</b> data: the exam got easier, the model didn't get better.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Registry E041/E042/E023 vs E049–E054</span><span>7</span></div>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">Finding 2</div>
+  <h1>Selection bias is real — so I measured it</h1>
+  <div class="body">
+    <div class="col" style="flex:1.5"><img class="half" src="portfolio/figures/finalists_fresh_folds.png" alt="finalists"></div>
+    <div class="col">
+      <p>All 8 finalists got worse on folds they were not chosen on: <b>+0.003 to +0.004</b>.</p>
+      <ul style="margin-top:10pt">
+        <li>Report the fresh-fold number</li>
+        <li>Differences below 0.003 are not wins</li>
+        <li>Paired per-fold differences, honest SE (repeats are correlated)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Selection: KFold(5), seed 42 · Fresh: RepeatedKFold(5×3), seed 7</span><span>8</span></div>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">Finding 3</div>
+  <h1>Tuning plateaued and ensembles were within noise</h1>
+  <div class="body">
+    <div class="col" style="flex:1.3"><img class="half" src="portfolio/figures/catboost_optuna_history.png" alt="optuna"></div>
+    <div class="col">
+      <p><b>Optuna (TPE), staged budget:</b> 25 → 75 trials gained 0.0016; 58 of 75 trials within 0.003 of the best.</p>
+      <p style="margin-top:10pt"><b>Ensembles:</b> Lasso–CatBoost residual correlation 0.856. Two-model variance formula predicts a gain of ≈ 0.0004 (break-even ρ = 0.869).</p>
+      <div class="callout"><p>Best ensemble: −0.0010 vs CatBoost, SE 0.003 → a tie. <b>Kept the simpler model</b> by the pre-registered rule.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>Learned blend weights and nested stacking never beat a plain average</span><span>9</span></div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">Interpretability & error analysis</div>
+  <h1>Size × quality drives the price; errors live at the extremes</h1>
+  <div class="body">
+    <div class="col"><img class="half" src="outputs/figures/E066_permutation_top25.png" alt="importance" style="max-height:4.6in"></div>
+    <div class="col"><img class="half" src="portfolio/figures/error_by_price_decile.png" alt="deciles">
+      <ul style="margin-top:10pt">
+        <li style="font-size:14pt">15 of 1,241 houses carry 31 % of the squared error</li>
+        <li style="font-size:14pt">Cheap houses over-predicted, expensive ones under-predicted</li>
+        <li style="font-size:14pt">Houses &gt; 4,000 sq ft: RMSE 0.61</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Permutation importance on validation folds; SHAP agrees on the top three</span><span>10</span></div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">Engineering</div>
+  <h1>Built like software: tested, reproducible, audited</h1>
+  <div class="tiles">
+    <div class="tile"><div class="v">83</div><div class="l">experiments in an append-only registry, each with a config hash</div></div>
+    <div class="tile"><div class="v">1 cmd</div><div class="l"><code>evaluate --experiment E066</code> reproduces any score</div></div>
+    <div class="tile"><div class="v">217</div><div class="l">automated tests, run in CI on every push</div></div>
+    <div class="tile"><div class="v">36</div><div class="l">findings from an independent code audit, fixed or documented</div></div>
+  </div>
+  <div class="body" style="margin-top:18pt">
+    <div class="col">
+      <h2>Package design</h2>
+      <ul>
+        <li style="font-size:14.5pt">Single data entry point: one place where the holdout is split off</li>
+        <li style="font-size:14.5pt">Configuration as data: builder + JSON arguments + seed</li>
+        <li style="font-size:14.5pt">Thin notebooks; logic in <code>src/houseprices</code></li>
+      </ul>
+    </div>
+    <div class="col">
+      <h2>Guards in code</h2>
+      <ul>
+        <li style="font-size:14.5pt">Holdout function refuses a second call</li>
+        <li style="font-size:14.5pt">CV raises on NaN predictions or empty folds</li>
+        <li style="font-size:14.5pt">Final fit refused until the holdout is scored</li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot"><span>Audit caught real bugs, e.g. finalist folds identical to selection folds (F20)</span><span>11</span></div>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="kicker">Honest limits & next steps</div>
+  <h1>What I would say before you ask</h1>
+  <div class="body">
+    <div class="col">
+      <h2>Limitations</h2>
+      <ul>
+        <li style="font-size:17pt">Top two models are statistically tied</li>
+        <li style="font-size:17pt">Holdout is small (219 houses)</li>
+        <li style="font-size:17pt">Random folds, not time-ordered; one city, 2006–2010</li>
+        <li style="font-size:17pt">Very large / atypical houses predicted poorly</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h2>Next steps</h2>
+      <ul>
+        <li style="font-size:17pt">Prediction intervals (quantile / conformal)</li>
+        <li style="font-size:17pt">Segment features or models for the extremes</li>
+        <li style="font-size:17pt">Time-aware validation and retraining</li>
+        <li style="font-size:17pt">Serve with FastAPI + Docker, MLflow tracking, drift monitoring</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout" style="margin-bottom:14pt"><p class="big">Expected error on new houses: <b>≈ 0.12 RMSLE</b> (≈ 12 % of the price; median holdout error 5.3 %). No leaderboard score — by choice, the leaderboard is one more thing to overfit.</p></div>
+  <div class="foot"><span>Built with Claude Code agent teams under my methodology, review and decisions</span><span>12</span></div>
+</section>
+
+<!-- 13 -->
+<section class="slide title-slide">
+  <div class="kicker">Thank you</div>
+  <h1>Five rules I took from this project</h1>
+  <ol class="steps" style="color:#fff">
+    <li><span class="num-badge" style="background:#fff;color:#1b4f8f">1</span>Lock a test set first.</li>
+    <li><span class="num-badge" style="background:#fff;color:#1b4f8f">2</span>Anything that learns from rows goes inside the fold.</li>
+    <li><span class="num-badge" style="background:#fff;color:#1b4f8f">3</span>A score you chose on is biased — re-measure on fresh data.</li>
+    <li><span class="num-badge" style="background:#fff;color:#1b4f8f">4</span>Decide the comparison rule before reading the result.</li>
+    <li><span class="num-badge" style="background:#fff;color:#1b4f8f">5</span>When the data can't separate models, prefer the simpler one — and say so.</li>
+  </ol>
+  <div class="foot"><span>Code, report and model card: github.com/baenaee/house-prices-ml-pipeline</span><span>13</span></div>
+</section>
+
+</body>
+</html>

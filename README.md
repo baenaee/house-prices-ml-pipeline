@@ -1,10 +1,20 @@
 # House Prices (Kaggle, Ames) — a reproducible, audited ML research project
 
+[![tests](https://github.com/baenaee/house-prices-ml-pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/baenaee/house-prices-ml-pipeline/actions/workflows/tests.yml)
+![python](https://img.shields.io/badge/python-3.12-blue)
+![model](https://img.shields.io/badge/final%20model-CatBoost-orange)
+![RMSLE](https://img.shields.io/badge/RMSLE%20(fresh%20CV)-0.1217-success)
+![license](https://img.shields.io/badge/license-MIT-lightgrey)
+
+**Portfolio documents:** [Technical report (PDF)](portfolio/HousePrices_Technical_Report.pdf) · [Slides (PDF)](portfolio/HousePrices_Slides.pdf) · [Model card](docs/MODEL_CARD.md) · [Executive summary](docs/EXECUTIVE_SUMMARY.md)
+
 > **Status (2026-11-17):** complete. Final model frozen (single CatBoost, registry id E066), holdout scored once, submission file written and validated but not submitted. See `docs/EXECUTIVE_SUMMARY.md` for the one-page version and `docs/RESEARCH_REPORT.md` for the full account.
 
-This repository turns a careful exploratory notebook (78 cells of cleaning and EDA, 17 documented cleaning rules) into a complete, leakage-safe modelling project for the Kaggle competition *House Prices: Advanced Regression Techniques*. It was built by a research director (Claude) coordinating four specialist agents (feature research, modelling, ensembles, validation audit), with every experiment logged, every methodological decision recorded with its evidence, and an independent auditor reading all pipeline code.
+This repository turns a careful exploratory notebook (78 cells of cleaning and EDA, 17 documented cleaning rules) into a complete, leakage-safe modelling project for the Kaggle competition *House Prices: Advanced Regression Techniques*. It was designed and directed by Enrique Baena and implemented with Claude Code — a research director agent coordinating four specialist agents (feature research, modelling, ensembles, validation audit) under the author's methodological rules and review — with every experiment logged, every methodological decision recorded with its evidence, and an independent auditor reading all pipeline code.
 
-The original notebook, CSVs, PDFs and profile report stay untouched at the repository root (hashes in `docs/AUDIT_2026-11-11.md`). All new work lives in `src/`, `tests/`, `notebooks/`, `experiments/`, `docs/`.
+The original notebook and PDFs stay untouched at the repository root (hashes in `docs/AUDIT_2026-11-11.md`). The Kaggle data files are **not** in the repository, because the competition rules forbid redistributing them; see *Data* below. All new work lives in `src/`, `tests/`, `notebooks/`, `experiments/`, `docs/`.
+
+![End-to-end ML flow: deterministic data steps, experiments refitted inside every CV fold, and a guarded selection and holdout stage](portfolio/figures/pipeline_overview.svg)
 
 ## Results at a glance
 
@@ -22,6 +32,8 @@ Metric: RMSE on `log1p(SalePrice)` (identical to the competition's RMSLE). Model
 | ensemble | equal-weight average Lasso + CatBoost | 0.1173 | E068 |
 
 **Final model: single CatBoost E066.**
+
+<p align="center"><img src="portfolio/figures/results_ladder.png" width="49%" alt="results ladder"> <img src="portfolio/figures/finalists_fresh_folds.png" width="49%" alt="finalists on fresh folds"></p>
 
 | estimate | RMSE | source |
 |---|---|---|
@@ -45,7 +57,9 @@ Selection-fold scores are optimistic (0.002–0.003 measured by the auditor on l
 ## Repository layout
 
 ```
-HousePricing.ipynb, train.csv, test.csv, *.pdf, *.html, data_description.txt   <- untouched originals
+HousePricing.ipynb, *.pdf                                    <- untouched originals
+train.csv, test.csv, sample_submission.csv, data_description.txt   <- Kaggle data: downloaded, not committed
+scripts/download_data.py   downloads the Kaggle data and verifies the SHA-256 of each file
 src/houseprices/
   config.py       paths, seeds, CV spec, column groups, dictionary-vs-data spellings
   cleaning.py     the 17 cleaning rules as pure functions (+ reconstructed rule C01, anomaly flags)
@@ -61,10 +75,18 @@ src/houseprices/
   predict.py      write a validated Kaggle submission file (never submits)
 experiments/      registry.jsonl, holdout_ids.json, holdout_usage.log, per-block runners (models/, tuning/, feature_ablation/, ensemble/, finalists/, interpretability/)
 notebooks/        01_cleaning_repaired (the original cleaning, repaired and executed), 02_feature_engineering, 03_modeling, 04_ensembles, 05_interpretability (thin, call src/)
+portfolio/        technical report and slides (PDF), figures/, build/ (scripts that regenerate them)
+.github/          CI workflow: runs the test suite on every push
 outputs/          submissions/E066_all.csv, figures/ and interpretability/ (error analysis, permutation importance, SHAP); models/ is git-ignored
 tests/            200+ tests: cleaning counts, features, preprocessing, validation protocol, models, ensembles, audit probes, end-to-end
 docs/             TASK_BOARD, EXPERIMENT_HISTORY (decisions D1–D22), VALIDATION_AUDIT, RESEARCH_REPORT, STUDY_GUIDE, CHATGPT_AUDIT_PACKET, EXECUTIVE_SUMMARY, SESSION_CHECKPOINT
 ```
+
+## Data
+
+The data come from the Kaggle competition [House Prices: Advanced Regression Techniques](https://www.kaggle.com/competitions/house-prices-advanced-regression-techniques). Its rules allow academic, non-commercial use but forbid redistributing the files, so they are not in this repository. To get them: accept the competition rules on Kaggle, create an API token (Kaggle → Settings → API), then run `pip install kaggle` and `python scripts/download_data.py`. The script puts the four files in the repository root and checks that each is byte-identical (SHA-256) to the copy every experiment was run on.
+
+Two derived files that contain training target values (`outputs/interpretability/E066_oof_predictions.csv`, `experiments/finalists/holdout_predictions_E066.csv`) are also kept out of the repository; the first is regenerated by the interpretability runner, and the test that reads the second skips when it is absent.
 
 ## Setup
 
@@ -72,6 +94,7 @@ docs/             TASK_BOARD, EXPERIMENT_HISTORY (decisions D1–D22), VALIDATIO
 conda env create -f environment.yml          # or: conda create -n houseprices python=3.12 && pip install -r requirements.txt
 conda activate houseprices
 pip install -e .
+pip install kaggle; python scripts/download_data.py   # the Kaggle data (see Data above)
 python -m pytest tests                        # pyproject already passes -q
 ```
 
@@ -93,6 +116,8 @@ Pinned: Python 3.12, pandas 2.3.3 (matches the original notebook), scikit-learn 
 ## Documentation
 
 - `docs/EXECUTIVE_SUMMARY.md` — one page for a hiring manager.
+- `docs/MODEL_CARD.md` — intended use, metrics, performance by segment, limitations.
+- `portfolio/HousePrices_Technical_Report.pdf` and `portfolio/HousePrices_Slides.pdf` — the report as a paper-style PDF with figures, and a 13-slide deck. Rebuild with `python portfolio/build/make_figures.py` then `python portfolio/build/build_documents.py report slides` (needs Chrome or Edge).
 - `docs/RESEARCH_REPORT.md` — hypotheses, experiments, results, decisions, limitations.
 - `docs/STUDY_GUIDE.md` — the educational guide: maths, algorithms, hyper-parameters, feature engineering, validation, implementation, findings, rejected approaches, self-check questions.
 - `docs/EXPERIMENT_HISTORY.md` — chronological log of every block with the director's rulings (D1–D22) and the evidence behind each.
@@ -107,3 +132,7 @@ Pinned: Python 3.12, pandas 2.3.3 (matches the original notebook), scikit-learn 
 - The anomaly flags are constant in the training data (the anomalies exist only in test rows), so no model can learn them; the test-only `GarageYrBlt = 2207` is handled by an opt-in fold-safe clip (`clip_years`), and test Id 2550 resembles the two training outliers, so its prediction is checked by hand.
 - The experiment registry is an append-only text file without locking; a single writer at a time is enforced by process, not by code (audit F27).
 - Model artefacts are joblib pickles: load only files you produced (audit F28).
+
+## Authorship and licence
+
+The exploratory analysis and the 17 cleaning rules (`HousePricing.ipynb`, cleaning log) are the author's original work. The modelling campaign was planned with, and implemented by, Claude Code agent teams under the author's binding methodological rules (leakage boundaries, nested stacking, single-use holdout, honest outlier evaluation); the author reviewed and corrected the plan and made the final decisions. Code and documentation are released under the MIT licence (`LICENSE`); the Kaggle data are not redistributed here and remain under the competition's terms. The Git history was rewritten on 2026-11-25 to remove the data files; commit hashes cited in the documents refer to the rewritten history.

@@ -25,7 +25,8 @@ def find_project_root(start: Path | None = None) -> Path:
         if (candidate / "data_description.txt").exists() and (candidate / "train.csv").exists():
             return candidate
     raise FileNotFoundError(
-        "Could not locate the project root (a folder containing data_description.txt and train.csv)"
+        "Could not locate the project root (a folder containing data_description.txt and train.csv). "
+        "The Kaggle data are not in the repository: run `python scripts/download_data.py` first."
     )
 
 

@@ -4,7 +4,7 @@ Chronological. Each experiment also has a machine-readable record in `experiment
 
 ## 2026-11-11 — Phase 0: checkpoint, environment, skeleton
 
-- Verified ZIP backup and Git checkpoint `fedba71` before any modification (see `docs/AUDIT_2026-11-11.md`).
+- Verified ZIP backup and Git checkpoint `3823292` before any modification (see `docs/AUDIT_2026-11-11.md`).
 - Created conda env `houseprices` (Python 3.12) with core packages only; TabPFN and GPU builds excluded by user decision.
 - Skeleton: `src/houseprices/{config,validation,registry}.py`, `pyproject.toml`, `docs/TASK_BOARD.md`.
 
@@ -32,7 +32,7 @@ Chronological. Each experiment also has a machine-readable record in `experiment
 
 ## 2026-11-13 — Session recovery after authentication failure
 
-Context. A new session resumed from commit `1c67494`. The three Sonnet teammates (validation-auditor, model-researcher, feature-researcher) were spawned and each failed within minutes with `API Error: 403 Attention Required! | Cloudflare` ("Please run /login"). The user re-authenticated; the teammates were resumed one at a time (auditor first as the connectivity probe) and continued from their transcripts.
+Context. A new session resumed from commit `403cee9`. The three Sonnet teammates (validation-auditor, model-researcher, feature-researcher) were spawned and each failed within minutes with `API Error: 403 Attention Required! | Cloudflare` ("Please run /login"). The user re-authenticated; the teammates were resumed one at a time (auditor first as the connectivity probe) and continued from their transcripts.
 
 Files touched before the failure (all reviewed by the director, none discarded):
 
@@ -45,7 +45,7 @@ Files touched before the failure (all reviewed by the director, none discarded):
 | `src/houseprices/features.py` | A | new group `anomaly_flags` (never in "base") | kept; A updates the two stale shape/name tests |
 | `tests/test_models.py` | B | builder smoke tests; the clone test compared parameter lists containing estimator objects / NaN | kept; B fixes the clone test |
 
-Test state at the moment of recovery: 96 passed, 12 failed, all 12 in the two stale agent tests above; no pipeline test failed. Originals verified byte-identical to `fedba71`/`1c67494` (SHA-256: notebook 1BB32B57…, train 1E18ADDF…, test 8FDD3D82…). Line endings: director edits had converted two LF files to CRLF; normalised back before commit.
+Test state at the moment of recovery: 96 passed, 12 failed, all 12 in the two stale agent tests above; no pipeline test failed. Originals verified byte-identical to `3823292`/`403cee9` (SHA-256: notebook 1BB32B57…, train 1E18ADDF…, test 8FDD3D82…). Line endings: director edits had converted two LF files to CRLF; normalised back before commit.
 
 Separate issue, not fixed on purpose: a `node: command not found` hook error comes from the user-level `~/.claude/settings.json` ("pixel-agents" hooks call `node`, which is not installed on PATH). It is unrelated to the `houseprices` environment; a backup `settings.json.pixel-agents.backup` exists next to it. Left to the user.
 
@@ -227,7 +227,7 @@ Agent B's fourth Optuna study (`--catboost-native`: the preprocessor only impute
 
 ## 2026-11-16 — Session V4: recovery, Stage 2, ensembles on final bases
 
-Recovery (director): commit `6560a90`, tree clean, registry 65 records, 215 tests passed, originals' SHA-256 equal to the manifest, holdout never scored (no `holdout_usage.log`), no stale processes. Team this session: `model-researcher` (Sonnet) for the boosting chapter and interpretability; other specialists spawned when their block starts. All registering runs were launched by the director, one at a time (F27 single-writer rule).
+Recovery (director): commit `c6fad39`, tree clean, registry 65 records, 215 tests passed, originals' SHA-256 equal to the manifest, holdout never scored (no `holdout_usage.log`), no stale processes. Team this session: `model-researcher` (Sonnet) for the boosting chapter and interpretability; other specialists spawned when their block starts. All registering runs were launched by the director, one at a time (F27 single-writer rule).
 
 ### E066–E067: boosting Stage 2 (C6, ruling D19)
 
@@ -293,7 +293,7 @@ Reading (director):
 
 ### 2026-11-17 00:40 — The single holdout evaluation, final fit and submission file
 
-Sequence (each step a separate commit): freeze D22 (`23f56ac`) → auditor approval with a pre-registered consistency range (VALIDATION_AUDIT §9.9; commit `264f43f`) → `python -m houseprices.train --experiment E066` (1,241 development rows, artefact sidecar records commit `264f43f`, `includes_holdout_rows: false`) → `experiments/finalists/score_holdout.py`, one call to `validation.score_holdout_once` → commit `c6943b1`.
+Sequence (each step a separate commit): freeze D22 (`95c3e86`) → auditor approval with a pre-registered consistency range (VALIDATION_AUDIT §9.9; commit `5beae61`) → `python -m houseprices.train --experiment E066` (1,241 development rows, artefact sidecar records commit `5beae61`, `includes_holdout_rows: false`) → `experiments/finalists/score_holdout.py`, one call to `validation.score_holdout_once` → commit `701b06f`.
 
 | quantity | value |
 |---|---|
@@ -310,3 +310,7 @@ Reading (director): the holdout score is better than the cross-validated estimat
 No part of the procedure was changed after the evaluation. `experiments/holdout_usage.log` holds exactly one line; a second call raises `HoldoutAlreadyUsedError`.
 
 Final fit and submission: `python -m houseprices.train --experiment E066 --rows all` (1,460 rows; allowed by the F24 guard only now) → `python -m houseprices.predict --model outputs/models/E066_all.joblib` → `outputs/submissions/E066_all.csv`: 1,459 rows, columns `Id,SalePrice`, Id order equal to `sample_submission.csv`, no missing values, prices 41,901 to 524,842 (median 156,611; training median 163,000, training maximum 755,000). Hand check of the three test-only anomalies (D18): Id 2593 (GarageYrBlt 2207) 256,431; Id 1877 212,580; Id 2550 (5,095 sq ft, Edwards, partial sale, the profile of training Ids 524 and 1299, which sold for 184,750 and 160,000) 268,438. The model has only two such houses to learn from and trees cannot extrapolate area, so the prediction for Id 2550 is uncertain in both directions; this is a documented limitation, not something CV can settle. **The file has not been submitted to Kaggle**; submission is the owner's decision.
+
+## Repository note, 2026-11-25 (after the campaign)
+
+On 2026-11-25 the Git history was rewritten to remove the Kaggle competition data (`train.csv`, `test.csv`, `sample_submission.csv`, `data_description.txt`) and two derived files that contain training target values (`outputs/interpretability/E066_oof_predictions.csv`, `experiments/finalists/holdout_predictions_E066.csv`), because the competition rules (section 7.B) forbid redistributing the data. The same day the commit e-mail addresses were replaced by the author's GitHub no-reply address. Every commit hash cited in the documents was updated to the final rewritten history; commit messages written before the rewrite may still quote the old hashes. The files' contents were not changed: `python scripts/download_data.py` downloads the data from Kaggle and verifies the same SHA-256 values listed in `docs/AUDIT_2026-11-11.md`. No experiment, score or decision is affected.

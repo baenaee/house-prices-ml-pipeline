@@ -1,0 +1,36 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    # Windows matches the environment the registered scores were produced on.
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+      - name: Download the Kaggle competition data
+        # The data are not in the repository (competition rule 7.B). Add two repository secrets,
+        # KAGGLE_USERNAME and KAGGLE_KEY, from a Kaggle account that accepted the competition rules.
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          if (-not $env:KAGGLE_USERNAME -or -not $env:KAGGLE_KEY) { Write-Error "Repository secrets KAGGLE_USERNAME and KAGGLE_KEY are not set; see scripts/download_data.py"; exit 1 }
+          pip install kaggle
+          python scripts/download_data.py
+      - name: Run the test suite
+        run: python -m pytest tests

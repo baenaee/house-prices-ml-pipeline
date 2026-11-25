@@ -26,3 +26,22 @@ outputs/models/
 *.db
 *.sqlite3
 optuna_*.log
+
+# Private interview / CV preparation (study guide PDF, LinkedIn and CV drafts)
+career_prep/
+
+# Portfolio build scripts are source (re-include them; "build/" above is for Python packaging)
+!portfolio/build/
+# Intermediate HTML produced by portfolio/build/build_documents.py
+portfolio/build/_html/
+
+# Kaggle competition data: the competition rules (7.B) forbid redistributing it.
+# Download it with `python scripts/download_data.py` (needs a Kaggle account that accepted the rules).
+/train.csv
+/test.csv
+/sample_submission.csv
+/data_description.txt
+/house-prices-advanced-regression-techniques.zip
+# Derived files that contain the target values of training rows (regenerable locally / kept as local evidence)
+outputs/interpretability/E066_oof_predictions.csv
+experiments/finalists/holdout_predictions_E066.csv

@@ -121,11 +121,11 @@ The auditor recorded a decision rule before reading the finalist records: keep s
 
 Single CatBoost E066 was frozen. Reasons: no ensemble shows a credible improvement; one pipeline is simpler to explain, audit and reproduce; and a linear member extrapolates on houses outside the training range (test Id 2550) where a tree does not. This is a parsimony ruling. The data do not show the average to be worse, and cannot exclude a true difference of about 0.002 in either direction.
 
-Frozen specification: `houseprices.models:build_catboost(learning_rate=0.01669422348518078, iterations=2000, depth=6, l2_leaf_reg=1.413619495827429, subsample=0.5869892858785986, rsm=0.8128738808596279)`, feature set `base+areas+baths+ages+quality_interactions+ordinal_quality`, training-row filter `keep_all`, target `log1p(SalePrice)`. Freeze commit `23f56ac`; auditor approval in `docs/VALIDATION_AUDIT.md` §9.9.
+Frozen specification: `houseprices.models:build_catboost(learning_rate=0.01669422348518078, iterations=2000, depth=6, l2_leaf_reg=1.413619495827429, subsample=0.5869892858785986, rsm=0.8128738808596279)`, feature set `base+areas+baths+ages+quality_interactions+ordinal_quality`, training-row filter `keep_all`, target `log1p(SalePrice)`. Freeze commit `95c3e86`; auditor approval in `docs/VALIDATION_AUDIT.md` §9.9.
 
 ## 8. The holdout evaluation
 
-One scoring call to `validation.score_holdout_once` on 2026-11-17 (the script then re-predicted with the same fitted model to save the residuals, which reproduce the logged score; audit note F35), model fitted on the 1,241 development rows (commit `264f43f`), logged in `experiments/holdout_usage.log`.
+One scoring call to `validation.score_holdout_once` on 2026-11-17 (the script then re-predicted with the same fitted model to save the residuals, which reproduce the logged score; audit note F35), model fitted on the 1,241 development rows (commit `5beae61`), logged in `experiments/holdout_usage.log`.
 
 | quantity | value |
 |---|---|

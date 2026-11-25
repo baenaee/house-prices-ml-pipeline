@@ -33,7 +33,7 @@ This document is addressed to an independent reviewer (a person or another AI mo
 | `docs/VALIDATION_AUDIT.md` | the internal audit: findings F1–F36, sign-offs, the pre-registered decision rule (§9) and holdout range (§9.9), the final round (§10) |
 | `src/houseprices/validation.py`, `data.py`, `models.py`, `preprocess.py`, `ensemble.py` | the code that carries the methodology |
 | `experiments/registry.jsonl`, `experiments/holdout_usage.log`, `experiments/finalists/*.csv` | the raw records |
-| `git log` | the order of events: freeze `23f56ac` → approval `264f43f` → holdout `c6943b1` → submission `385a542` |
+| `git log` | the order of events: freeze `95c3e86` → approval `5beae61` → holdout `701b06f` → submission `b249ba9` |
 
 ## Where the authors think the project is weakest
 
@@ -49,7 +49,7 @@ This document is addressed to an independent reviewer (a person or another AI mo
 
 ## Questions we would like answered
 
-- Is there any path by which holdout rows, or statistics computed from them, could have influenced a model, a hyper-parameter or a decision before commit `c6943b1`?
+- Is there any path by which holdout rows, or statistics computed from them, could have influenced a model, a hyper-parameter or a decision before commit `701b06f`?
 - Is the nested protocol for blending and stacking correct as implemented in `ensemble.py` (inner out-of-fold predictions inside `fit`)?
 - Is the outlier-policy experiment (filters on training folds only) correctly implemented in `validation.iter_folds`, and is the conclusion (keep all rows) justified by E049–E054?
 - Are the statements about selection optimism (0.003–0.004) and about the holdout (consistency check, not headline) worded no more strongly than the evidence allows?
@@ -315,13 +315,13 @@ for i in c.index:
 
 #### D1. The holdout was carved once, has 219 ids, and was scored exactly once, after the procedure was frozen
 
-- **Evidence:** `experiments/holdout_ids.json` (single commit `582bf86`); `experiments/holdout_usage.log` (one line); commits `23f56ac` (freeze, ruling D22), `264f43f` (scoring script and auditor approval with the pre-registered range, `docs/VALIDATION_AUDIT.md` 9.9), `c6943b1` (the scoring).
+- **Evidence:** `experiments/holdout_ids.json` (single commit `8224e40`); `experiments/holdout_usage.log` (one line); commits `95c3e86` (freeze, ruling D22), `5beae61` (scoring script and auditor approval with the pre-registered range, `docs/VALIDATION_AUDIT.md` 9.9), `701b06f` (the scoring).
 - **Command:**
 
 ```powershell
 Get-Content experiments\holdout_usage.log
 git log --oneline -- experiments/holdout_ids.json
-git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
+git log --format="%h %ad %s" --date=iso 95c3e86..701b06f
 ```
 
 - **Expected:** exactly one JSON line: `frozen_experiment_id` E066, `n_holdout` 219, `rmse_log` 0.10645, `forced` false, `n_previous_uses` 0; one commit for `holdout_ids.json`; the freeze commit precedes the scoring commit.
@@ -344,7 +344,7 @@ git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
 
 - **Evidence:** `train.fit_registered`; sidecar keys `includes_holdout_rows`, `holdout_scored_before_fit`; `outputs/models/E066_development.json` (rows development, 1,241 rows, `holdout_scored_before_fit` false, written 00:40:42, before the log line at 00:40:45) and `E066_all.json` (rows all, 1,460 rows, `holdout_scored_before_fit` true, 00:41:04).
 - **Command:** `& $PY -m pytest tests/test_audit_round2.py -k "f24"` and read the two sidecars. (Do NOT run `train --rows all` to test the refusal now: the holdout is scored, so the command would succeed and write a file.)
-- **Expected:** the probe passes (refusal while the usage log is empty, using a temporary log); sidecar fields as listed; `git diff --stat 23f56ac HEAD -- src` is empty.
+- **Expected:** the probe passes (refusal while the usage log is empty, using a temporary log); sidecar fields as listed; `git diff --stat 95c3e86 HEAD -- src` is empty.
 - **Look for:** an artefact named `*_all.joblib` older than the log line, or a `*_development` sidecar with `includes_holdout_rows` true.
 
 #### D5. `predict.py` checks its output before writing a submission
@@ -359,10 +359,11 @@ git log --format="%h %ad %s" --date=iso 23f56ac..c6943b1
 
 #### E1. The original files are unchanged
 
-- **Evidence:** the SHA-256 manifest in `docs/AUDIT_2026-11-11.md` and the dated backup ZIP named there; commit `fedba71`.
+- **Evidence:** the SHA-256 manifest in `docs/AUDIT_2026-11-11.md` and the dated backup ZIP named there; commit `3823292`.
 - **Command:** `Get-FileHash -Algorithm SHA256 HousePricing.ipynb, train.csv, test.csv, data_description.txt, sample_submission.csv | Select-Object Hash, Path`
 - **Expected hashes (start of each):** `HousePricing.ipynb` 1BB32B57, `train.csv` 1E18ADDF, `test.csv` 8FDD3D82, `data_description.txt` 356A4670, `sample_submission.csv` F19E9969 (checked on 2026-11-13 by the auditor; full hashes are in the manifest).
 - **Look for:** a hash mismatch, or a cleaning step in `src/` that writes to a root CSV (`cleaning.py` only reads).
+- **Note (2026-11-25):** the CSV files are no longer in the public repository (competition rule 7.B). Download them with `python scripts/download_data.py`, which checks the same SHA-256 values, before running this command.
 
 ---
 
@@ -391,7 +392,7 @@ for i in ["E077","E081","E078","E076","E079","E080","E083","E082"]:
 
 #### F2. Single holdout score of the frozen model: 0.10645, 95% bootstrap interval 0.092 to 0.121
 
-- **Evidence:** `experiments/holdout_usage.log` (one line, `forced` false); `experiments/finalists/holdout_predictions_E066.csv` (219 Ids equal to `holdout_ids.json`); `docs/VALIDATION_AUDIT.md` sections 9.9 and 10.
+- **Evidence:** `experiments/holdout_usage.log` (one line, `forced` false); `experiments/finalists/holdout_predictions_E066.csv` (219 Ids equal to `holdout_ids.json`; kept in the author's local copy only since 2026-11-25, because it contains the holdout target values); `docs/VALIDATION_AUDIT.md` sections 9.9 and 10.
 - **Command:**
 
 ```powershell
